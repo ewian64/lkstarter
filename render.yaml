@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: startersar-cabinet
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: LIVESKLAD_LOGIN
+        sync: false
+      - key: LIVESKLAD_PASSWORD
+        sync: false
+      - key: IMAGES_BASE_URL
+        sync: false
+      - key: DATABASE_PATH
+        value: app.db
+      - key: SMS_PROVIDER
+        value: stub
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_SENDER
+        value: StarterSar
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: API_TIMEOUT
+        value: "20"
+      - key: SESSION_DAYS
+        value: "30"

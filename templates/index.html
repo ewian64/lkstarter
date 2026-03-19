@@ -1,0 +1,201 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Личный кабинет StarterSar</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">StarterSar</div>
+
+      <div class="topbar-actions">
+        <a id="topbarContactLink" class="btn btn-ghost hidden topbar-link" href="#" target="_blank" rel="noopener noreferrer">Связь</a>
+        <button id="themeToggleBtn" class="btn btn-ghost" type="button">🌙 Тема</button>
+        <button id="logoutBtn" class="btn btn-ghost hidden" type="button">Выйти</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="loginScreen" class="card auth-card">
+        <h1>Личный кабинет</h1>
+        <p class="muted">Войдите по номеру телефона</p>
+
+        <label class="label" for="phoneInput">Телефон</label>
+        <input id="phoneInput" class="input" type="tel" placeholder="79001234567" />
+
+        <button id="sendCodeBtn" class="btn btn-primary btn-block" type="button">Получить код</button>
+        <p id="loginMessage" class="message"></p>
+      </section>
+
+      <section id="codeScreen" class="card auth-card hidden">
+        <h2>Подтверждение входа</h2>
+        <p class="muted">Введите код из SMS</p>
+
+        <label class="label" for="codeInput">Код</label>
+        <input id="codeInput" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234" />
+
+        <div class="row">
+          <button id="verifyCodeBtn" class="btn btn-primary" type="button">Войти</button>
+          <button id="backToPhoneBtn" class="btn btn-secondary" type="button">Назад</button>
+        </div>
+
+        <p id="codeMessage" class="message"></p>
+      </section>
+
+      <section id="profileSetupScreen" class="card auth-card hidden">
+        <h2>Заполните профиль</h2>
+        <p class="muted">Это нужно один раз: имя и дата рождения для бонусов и удобства в кабинете.</p>
+
+        <label class="label" for="setupNameInput">Имя</label>
+        <input id="setupNameInput" class="input" type="text" placeholder="Ваше имя" />
+
+        <label class="label" for="setupBirthDateInput">Дата рождения</label>
+        <input id="setupBirthDateInput" class="input" type="date" />
+
+        <div class="row">
+          <button id="saveProfileBtn" class="btn btn-primary" type="button">Сохранить профиль</button>
+        </div>
+
+        <p id="profileSetupMessage" class="message"></p>
+      </section>
+
+      <section id="cabinetScreen" class="hidden">
+        <div class="mobile-welcome card mobile-only">
+          <div class="mobile-welcome-name" id="mobileProfileName">—</div>
+          <div class="mobile-welcome-phone" id="mobileProfilePhone">—</div>
+        </div>
+
+        <div class="dashboard">
+          <aside class="sidebar-col">
+            <div class="card profile-card">
+              <div class="profile-badge">Наш любимый клиент</div>
+              <div class="profile-since">с <span id="favoriteClientSince">—</span></div>
+
+              <div class="profile-hero-name" id="profileName">—</div>
+              <div class="profile-hero-phone" id="profilePhone">—</div>
+
+              <div class="quick-actions">
+                <a id="profileContactLink" class="btn btn-primary hidden" href="#" target="_blank" rel="noopener noreferrer">Связаться</a>
+                <a id="profileReviewLink" class="btn btn-secondary hidden" href="#" target="_blank" rel="noopener noreferrer">Оставить отзыв</a>
+              </div>
+
+              <div class="profile-note">
+                Изменение данных профиля — через администратора сервиса.
+              </div>
+
+              <div class="stats-grid">
+                <div class="mini-stat">
+                  <div class="mini-stat-label">Дата рождения</div>
+                  <div class="mini-stat-value" id="profileBirthDate">—</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-stat-label">Всего ремонтов</div>
+                  <div class="mini-stat-value" id="totalRepairsSum">0 ₽</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-stat-label">Количество заказов</div>
+                  <div class="mini-stat-value" id="ordersCount">0</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-stat-label">Первое обращение</div>
+                  <div class="mini-stat-value" id="firstVisitDate">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card bonus-card">
+              <div class="bonus-head">
+                <div>
+                  <h2>Бонусный баланс</h2>
+                  <div class="muted">Ваш текущий бонусный счёт</div>
+                </div>
+                <div class="bonus-tier" id="bonusTier">2%</div>
+              </div>
+
+              <div class="bonus-value" id="bonusBalance">0 ₽</div>
+
+              <div class="bonus-meta">
+                <div class="profile-row"><span>Накопленная сумма:</span><strong id="bonusTotalSpent">0 ₽</strong></div>
+                <div class="profile-row"><span>Следующий уровень:</span><strong id="bonusNextTier">—</strong></div>
+                <div class="profile-row"><span>Осталось до него:</span><strong id="bonusToNextTier">—</strong></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="section-head section-head-tight">
+                <h2>История бонусов</h2>
+              </div>
+              <div id="bonusHistoryList" class="bonus-history-list"></div>
+            </div>
+
+            <div class="card">
+              <div class="section-head section-head-tight">
+                <h2>Автомобили клиента</h2>
+              </div>
+              <div id="vehiclesList" class="vehicles-list"></div>
+            </div>
+          </aside>
+
+          <section class="content-col">
+            <div class="card orders-card">
+              <div class="section-head orders-head">
+                <div>
+                  <h2>Мои заказ-наряды</h2>
+                  <div class="muted">История обращений, статусы и фото</div>
+                </div>
+
+                <div class="toolbar">
+                  <select id="vehicleFilter" class="input select-input">
+                    <option value="all">Все автомобили</option>
+                  </select>
+                  <button id="refreshOrdersBtn" class="btn btn-secondary" type="button">Обновить</button>
+                </div>
+              </div>
+
+              <div id="ordersMessage" class="message"></div>
+              <div id="ordersList" class="orders-list"></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="vehicleModal" class="modal hidden">
+    <div id="vehicleModalBackdrop" class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <div class="modal-head-left">
+          <h2>Карточка автомобиля</h2>
+        </div>
+        <div class="modal-head-actions">
+          <button id="closeVehicleBtn" class="btn btn-secondary" type="button">Закрыть</button>
+        </div>
+      </div>
+      <div id="vehicleDetailContent"></div>
+    </div>
+  </div>
+
+  <div id="orderModal" class="modal hidden">
+    <div id="orderModalBackdrop" class="modal-backdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <div class="modal-head-left">
+          <button id="backToVehicleBtn" class="btn btn-secondary hidden" type="button">← Назад</button>
+          <h2>Карточка заказа</h2>
+        </div>
+        <div class="modal-head-actions">
+          <button id="closeDetailBtn" class="btn btn-secondary" type="button">Закрыть</button>
+        </div>
+      </div>
+      <div id="orderDetailContent"></div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
