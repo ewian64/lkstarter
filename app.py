@@ -10,6 +10,7 @@ from bonus import bonus_bp, apply_birthday_bonus_if_needed, build_bonus_payload,
 from config import Config
 from livesklad import (
     fetch_orders_by_counteragent_id,
+    enrich_orders_with_vin,
     fetch_order_detail,
     format_order,
     format_order_detail,
@@ -57,14 +58,17 @@ def create_app():
             return jsonify({"error": "Не авторизован"}), 401
 
         apply_birthday_bonus_if_needed(current)
-        sync_order_cashback(current)
+        # sync_order_cashback(current)
         bonus = build_bonus_payload(current["id"])
 
         orders = []
         counteragent_id = current.get("livesklad_counteragent_id")
         if counteragent_id:
-            raw_orders = fetch_orders_by_counteragent_id(counteragent_id) or []
-            orders = [format_order(o) for o in raw_orders]
+            try:
+                raw_orders = enrich_orders_with_vin(fetch_orders_by_counteragent_id(counteragent_id) or [])
+                orders = [format_order(o) for o in raw_orders]
+            except Exception:
+                orders = []
 
         customer_summary = build_customer_summary(orders)
 
@@ -105,14 +109,17 @@ def create_app():
 
         fresh = get_user_by_id(current["id"])
         apply_birthday_bonus_if_needed(fresh)
-        sync_order_cashback(fresh)
+        # sync_order_cashback(fresh)
         bonus = build_bonus_payload(fresh["id"])
 
         orders = []
         counteragent_id = fresh.get("livesklad_counteragent_id")
         if counteragent_id:
-            raw_orders = fetch_orders_by_counteragent_id(counteragent_id) or []
-            orders = [format_order(o) for o in raw_orders]
+            try:
+                raw_orders = enrich_orders_with_vin(fetch_orders_by_counteragent_id(counteragent_id) or [])
+                orders = [format_order(o) for o in raw_orders]
+            except Exception:
+                orders = []
 
         customer_summary = build_customer_summary(orders)
 
@@ -140,7 +147,10 @@ def create_app():
         if not counteragent_id:
             return jsonify({"count": 0, "orders": []})
 
-        orders = fetch_orders_by_counteragent_id(counteragent_id)
+        try:
+            orders = enrich_orders_with_vin(fetch_orders_by_counteragent_id(counteragent_id))
+        except Exception:
+            orders = []
         result = [format_order(o) for o in orders]
         result.sort(key=lambda x: x.get("dateCreate") or "", reverse=True)
 

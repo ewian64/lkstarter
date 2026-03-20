@@ -25,6 +25,17 @@ def normalize_phone_last10(phone):
 def cleanup_spaces(text):
     return re.sub(r"\s+", " ", str(text or "")).strip()
 
+VIN_CUSTOM_FIELD_ID = "66474ad839a7e0780924a301"
+
+def get_custom_field_value(order, field_id):
+    for field in order.get("customFields", []) or []:
+        if field.get("id") == field_id:
+            value = field.get("value")
+            if isinstance(value, list):
+                return ", ".join(str(v) for v in value if v is not None)
+            return str(value).strip() if value is not None else ""
+    return ""
+
 
 def to_number(value):
     try:
@@ -259,6 +270,16 @@ def fetch_order_detail(order_id):
         headers=get_headers(),
         timeout=Config.API_TIMEOUT,
     )
+
+    if response.status_code == 401:
+        TOKEN_CACHE["token"] = None
+        TOKEN_CACHE["expires_at"] = None
+        response = requests.get(
+            f"{Config.ORDER_DETAIL_URL}/{order_id}",
+            headers=get_headers(),
+            timeout=Config.API_TIMEOUT,
+        )
+
     data = response.json()
 
     if response.status_code != 200:
@@ -290,6 +311,7 @@ def extract_vin(order):
     candidates = [
         order.get("vin"),
         order.get("VIN"),
+        get_custom_field_value(order, VIN_CUSTOM_FIELD_ID),
         order.get("sn"),
         order.get("serialNumber"),
         order.get("serial_number"),
@@ -313,7 +335,7 @@ def build_vehicle_key(order):
     brand = cleanup_spaces(order.get("brand"))
     model = cleanup_spaces(order.get("model"))
     device = cleanup_spaces(order.get("device")) if not isinstance(order.get("device"), dict) else cleanup_spaces((order.get("device") or {}).get("name"))
-    vin = extract_vin(order)
+    vin = extract_vin(order) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
 
     base = " ".join([x for x in [brand, model, device] if x]).strip()
     if not base:
@@ -400,6 +422,35 @@ def extract_image_urls(order):
     return unique
 
 
+
+VIN_CUSTOM_FIELD_ID = "66474ad839a7e0780924a301"
+
+def get_custom_field_value(order, field_id):
+    for field in order.get("customFields", []) or []:
+        if field.get("id") == field_id:
+            value = field.get("value")
+            if isinstance(value, list):
+                return ", ".join(str(v) for v in value if v is not None)
+            return str(value).strip() if value is not None else ""
+    return ""
+
+def enrich_orders_with_vin(orders):
+    enriched = []
+    for order in orders or []:
+        vin = extract_vin(order) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
+        if not vin and order.get("id"):
+            try:
+                detail = fetch_order_detail(order.get("id"))
+                vin = extract_vin(detail) or get_custom_field_value(detail, VIN_CUSTOM_FIELD_ID)
+            except Exception:
+                vin = ""
+        if vin:
+            order = dict(order)
+            order["vin"] = vin
+            order["vehicleVin"] = order.get("vehicleVin") or vin
+        enriched.append(order)
+    return enriched
+
 def format_order(order):
     counteragent = order.get("counteragent", {})
     status = order.get("status", {})
@@ -485,7 +536,7 @@ def format_order_detail(order):
     device_label = build_device_label(order)
     vehicle_key = build_vehicle_key(order)
     vehicle_info = split_vehicle_key(vehicle_key)
-    vin = extract_vin(order)
+    vin = extract_vin(order) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
     problem_text = build_problem_text(order.get("problem", []))
     image_urls = extract_image_urls(order)
 
@@ -555,7 +606,7 @@ def build_customer_summary(orders):
             item = {
                 "name": vehicle_key,
                 "label": split_info["label"],
-                "vin": split_info["vin"] or cleanup_spaces(order.get("vin")),
+                "vin": split_info["vin"] or cleanup_spaces(order.get("vin")) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID),
                 "orders_count": 0,
                 "total_sum": 0.0,
                 "last_order_date": None,
@@ -570,7 +621,7 @@ def build_customer_summary(orders):
             vehicles[vehicle_key] = item
 
         if not item["vin"]:
-            item["vin"] = cleanup_spaces(order.get("vin"))
+            item["vin"] = cleanup_spaces(order.get("vin")) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
 
         item["orders_count"] += 1
         item["total_sum"] += order_sum
@@ -588,8 +639,9 @@ def build_customer_summary(orders):
             item["last_status_short"] = order.get("shortStatus") or ""
             item["last_status_tone"] = order.get("statusTone") or "slate"
             item["last_order_number"] = order.get("number") or ""
-            if cleanup_spaces(order.get("vin")):
-                item["vin"] = cleanup_spaces(order.get("vin"))
+            custom_vin = get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
+            if cleanup_spaces(order.get("vin")) or custom_vin:
+                item["vin"] = cleanup_spaces(order.get("vin")) or custom_vin
 
     vehicles_list = []
     for item in vehicles.values():

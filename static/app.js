@@ -68,6 +68,39 @@ let currentProfile = null;
 let currentVehicleContext = null;
 let lastOrderOpenedFromVehicle = false;
 
+const ORDERS_CACHE_KEY = "cabinet_orders_cache";
+
+function loadCachedOrders() {
+  try {
+    const data = JSON.parse(localStorage.getItem(ORDERS_CACHE_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCachedOrders(orders) {
+  try {
+    localStorage.setItem(ORDERS_CACHE_KEY, JSON.stringify(Array.isArray(orders) ? orders : []));
+  } catch {}
+}
+
+const PROFILE_CACHE_KEY = "cabinet_profile_cache";
+
+function loadCachedProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedProfile(profile) {
+  try {
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+  } catch {}
+}
+
 function showLogin() {
   loginScreen.classList.remove("hidden");
   codeScreen.classList.add("hidden");
@@ -362,7 +395,24 @@ async function loadProfile() {
     return { profile, incomplete: true };
   }
 
+  const cached = loadCachedProfile();
+
+  const summary = profile.customer_summary || {};
+  const summaryLooksEmpty =
+    !summary.orders_count &&
+    (!Array.isArray(summary.vehicles) || summary.vehicles.length === 0) &&
+    (!summary.total_repairs_sum || Number(summary.total_repairs_sum) === 0);
+
+  if (summaryLooksEmpty && cached?.customer_summary?.orders_count > 0) {
+    profile.customer_summary = cached.customer_summary;
+  }
+
+  if ((!profile.bonus || profile.bonus.balance == null) && cached?.bonus) {
+    profile.bonus = cached.bonus;
+  }
+
   currentProfile = profile;
+  saveCachedProfile(profile);
 
   profileName.textContent = profile.name || "Без имени";
   profilePhone.textContent = profile.phone || "—";
@@ -683,6 +733,53 @@ function openVehicleDetail(vehicleName) {
 async function openOrderDetail(orderId, fromVehicle = false) {
   try {
     const data = await api(`/me/orders/${orderId}`);
+
+    const detailVin = data.vin || data.vehicleVin || "";
+
+    if (detailVin) {
+      allOrders = (allOrders || []).map((order) => {
+        if (String(order.id) === String(orderId)) {
+          return {
+            ...order,
+            vin: order.vin || detailVin,
+            vehicleVin: order.vehicleVin || detailVin,
+          };
+        }
+        return order;
+      });
+
+      if (typeof saveCachedOrders === "function") {
+        saveCachedOrders(allOrders);
+      }
+
+      if (currentProfile?.customer_summary?.vehicles?.length) {
+        currentProfile.customer_summary.vehicles = currentProfile.customer_summary.vehicles.map((vehicle) => {
+          const linked = allOrders.find((order) =>
+            (order.vehicleKey || "") === (vehicle.name || "") &&
+            (order.vin || order.vehicleVin)
+          );
+
+          if (linked && !(vehicle.vin || "").trim()) {
+            return {
+              ...vehicle,
+              vin: linked.vin || linked.vehicleVin || ""
+            };
+          }
+          return vehicle;
+        });
+
+        if (typeof saveCachedProfile === "function") {
+          saveCachedProfile(currentProfile);
+        }
+
+        renderCustomerSummary(currentProfile);
+      }
+
+      if (typeof filterOrders === "function") {
+        filterOrders();
+      }
+    }
+
     renderOrderDetail(data, fromVehicle);
   } catch (error) {
     alert(error.message);
@@ -710,10 +807,35 @@ async function loadOrders() {
 
   try {
     const data = await api("/me/orders");
-    allOrders = data.orders || [];
+    const incomingOrders = Array.isArray(data.orders) ? data.orders : [];
+    const cachedOrders = loadCachedOrders();
+    const profileOrdersCount = Number(currentProfile?.customer_summary?.orders_count || 0);
+
+    // Если сервер внезапно вернул пусто, но мы знаем, что заказы есть,
+    // используем последний хороший список из localStorage.
+    if (incomingOrders.length === 0 && profileOrdersCount > 0 && cachedOrders.length > 0) {
+      allOrders = cachedOrders;
+      filterOrders();
+      setMessage(ordersMessage, "");
+      return;
+    }
+
+    allOrders = incomingOrders;
+
+    if (incomingOrders.length > 0) {
+      saveCachedOrders(incomingOrders);
+    }
+
     filterOrders();
-    setMessage(ordersMessage, "");
+    setMessage(ordersMessage, incomingOrders.length ? "" : "Заказов пока нет");
   } catch (error) {
+    const cachedOrders = loadCachedOrders();
+    if (cachedOrders.length > 0) {
+      allOrders = cachedOrders;
+      filterOrders();
+      setMessage(ordersMessage, "");
+      return;
+    }
     setMessage(ordersMessage, error.message, true);
   }
 }
@@ -739,8 +861,14 @@ async function checkSession() {
       return;
     }
 
-    await loadCabinet();
     showCabinet();
+
+    try {
+      await loadCabinet();
+    } catch (error) {
+      console.error("loadCabinet failed:", error);
+      setMessage(ordersMessage, error.message, true);
+    }
   } catch {
     showLogin();
   }
