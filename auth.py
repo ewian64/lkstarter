@@ -38,6 +38,9 @@ def send_code():
     if len(phone) < 11:
         return jsonify({"error": "Введите корректный номер телефона"}), 400
 
+    if Config.TEST_LOGIN_ENABLED:
+        return jsonify({"ok": True, "test_mode": True})
+
     counteragent = find_exact_counteragent_by_phone(phone)
     if not counteragent:
         return jsonify({"error": "Клиент с таким номером не найден"}), 404
@@ -55,11 +58,12 @@ def verify_code():
     phone = normalize_phone(data.get("phone"))
     code = str(data.get("code", "")).strip()
 
-    row = get_active_sms_code(phone, code)
-    if not row:
-        return jsonify({"error": "Неверный или просроченный код"}), 400
+    if not (Config.TEST_LOGIN_ENABLED and code == "0000"):
+        row = get_active_sms_code(phone, code)
+        if not row:
+            return jsonify({"error": "Неверный или просроченный код"}), 400
 
-    mark_sms_code_used(row["id"])
+        mark_sms_code_used(row["id"])
 
     counteragent = find_exact_counteragent_by_phone(phone)
     if not counteragent:
@@ -73,12 +77,13 @@ def verify_code():
             livesklad_counteragent_id=counteragent.get("id", "") or ""
         )
     else:
-        update_user_counteragent(
-            user_id=user["id"],
-            counteragent_id=counteragent.get("id", "") or "",
-            name=counteragent.get("name", "") or ""
-        )
-        user = get_user_by_id(user["id"])
+        if not user.get("livesklad_counteragent_id"):
+            update_user_counteragent(
+                user_id=user["id"],
+                counteragent_id=counteragent.get("id", "") or "",
+                name=counteragent.get("name", "") or ""
+            )
+            user = get_user_by_id(user["id"])
 
     session_token = secrets.token_urlsafe(32)
     create_session(user["id"], session_token, Config.SESSION_DAYS)

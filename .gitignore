@@ -1,1 +1,7 @@
-
+*.bak
+*.bak.*
+.env
+__pycache__/
+*.pyc
+app.db
+*before_rollback*

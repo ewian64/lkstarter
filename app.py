@@ -96,14 +96,15 @@ def create_app():
         if len(name) < 2:
             return jsonify({"error": "Введите имя"}), 400
 
-        try:
-            dt = datetime.strptime(birth_date, "%Y-%m-%d").date()
-            if dt.year < 1900:
-                return jsonify({"error": "Дата рождения указана некорректно"}), 400
-            if dt > datetime.now(timezone.utc).date():
-                return jsonify({"error": "Дата рождения не может быть в будущем"}), 400
-        except Exception:
-            return jsonify({"error": "Введите дату рождения в формате ГГГГ-ММ-ДД"}), 400
+        if birth_date:
+            try:
+                dt = datetime.strptime(birth_date, "%Y-%m-%d").date()
+                if dt.year < 1900:
+                    return jsonify({"error": "Дата рождения указана некорректно"}), 400
+                if dt > datetime.now(timezone.utc).date():
+                    return jsonify({"error": "Дата рождения не может быть в будущем"}), 400
+            except Exception:
+                return jsonify({"error": "Введите дату рождения в формате ГГГГ-ММ-ДД"}), 400
 
         update_user_profile(current["id"], name, birth_date)
 

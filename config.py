@@ -20,8 +20,10 @@ class Config:
 
     # SMS
     SMS_PROVIDER = os.getenv("SMS_PROVIDER", "stub")
+    SMS_API_EMAIL = os.getenv("SMS_API_EMAIL", "")
     SMS_API_KEY = os.getenv("SMS_API_KEY", "")
     SMS_SENDER = os.getenv("SMS_SENDER", "StarterSar")
+    TEST_LOGIN_ENABLED = os.getenv("TEST_LOGIN_ENABLED", "false").lower() == "true"
 
     # Session
     SESSION_DAYS = int(os.getenv("SESSION_DAYS", "30"))

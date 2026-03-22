@@ -273,7 +273,6 @@ def my_bonus():
         return jsonify({"error": "Сессия недействительна"}), 401
 
     apply_birthday_bonus_if_needed(current)
-    sync_order_cashback(current)
 
     return jsonify(build_bonus_payload(current["user_id"]))
 
@@ -289,7 +288,6 @@ def my_bonus_history():
         return jsonify({"error": "Сессия недействительна"}), 401
 
     apply_birthday_bonus_if_needed(current)
-    sync_order_cashback(current)
 
     operations = list_bonus_operations(current["user_id"], limit=30)
     return jsonify({

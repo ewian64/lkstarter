@@ -368,11 +368,22 @@ def normalize_image_url(value):
     if url.startswith("http://") or url.startswith("https://"):
         return url
 
-    base = cleanup_spaces(getattr(Config, "IMAGES_BASE_URL", ""))
-    if base:
-        return base.rstrip("/") + "/" + url.lstrip("/")
+    base = cleanup_spaces(getattr(Config, "IMAGES_BASE_URL", "")).rstrip("/")
+    if not base:
+        return url
 
-    return url
+    clean = url.lstrip("/")
+
+    # Если уже пришёл относительный путь orders/...
+    if clean.startswith("orders/"):
+        return f"{base}/{clean}"
+
+    # Если пришло только имя файла картинки
+    lower = clean.lower()
+    if "/" not in clean and lower.endswith((".jpg", ".jpeg", ".png", ".webp", ".gif")):
+        return f"{base}/orders/{clean}"
+
+    return f"{base}/{clean}"
 
 
 def extract_image_urls(order):

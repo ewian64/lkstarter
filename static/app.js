@@ -1,6 +1,7 @@
 // app.js
-const SERVICE_CONTACT_URL = "https://t.me/your_service_username";
-const SERVICE_REVIEW_URL = "https://yandex.ru/maps/your-review-link";
+const SERVICE_CONTACT_URL = "https://t.me/Startersaratov";
+const SERVICE_PHONE = "+79372252188";
+const SERVICE_REVIEW_URL = "https://yandex.ru/maps/org/starter/1045866863/reviews/?add-review=true&ll=46.027951%2C51.555866&z=17";
 
 const loginScreen = document.getElementById("loginScreen");
 const codeScreen = document.getElementById("codeScreen");
@@ -31,8 +32,9 @@ const ordersMessage = document.getElementById("ordersMessage");
 
 const profileName = document.getElementById("profileName");
 const profilePhone = document.getElementById("profilePhone");
-const mobileProfileName = document.getElementById("mobileProfileName");
-const mobileProfilePhone = document.getElementById("mobileProfilePhone");
+const mobileBonusBalance = document.getElementById("mobileBonusBalance");
+const profileMoreBtn = document.getElementById("profileMoreBtn");
+const profileDetailsBlock = document.getElementById("profileDetailsBlock");
 const profileBirthDate = document.getElementById("profileBirthDate");
 const favoriteClientSince = document.getElementById("favoriteClientSince");
 const totalRepairsSum = document.getElementById("totalRepairsSum");
@@ -61,12 +63,76 @@ const vehicleModal = document.getElementById("vehicleModal");
 const vehicleModalBackdrop = document.getElementById("vehicleModalBackdrop");
 const vehicleDetailContent = document.getElementById("vehicleDetailContent");
 
+const mobileTabProfile = document.getElementById("mobileTabProfile");
+const mobileTabVehicles = document.getElementById("mobileTabVehicles");
+const mobileTabOrders = document.getElementById("mobileTabOrders");
+
+const mobileProfileSection = document.getElementById("mobileProfileSection");
+const mobileVehiclesSection = document.getElementById("mobileVehiclesSection");
+const mobileOrdersSection = document.getElementById("mobileOrdersSection");
+
 let currentPhone = "";
 let allOrders = [];
 let allVehicles = [];
 let currentProfile = null;
 let currentVehicleContext = null;
 let lastOrderOpenedFromVehicle = false;
+
+
+function setMobileCabinetSection(section) {
+  const isMobile = window.innerWidth <= 700;
+  const sections = {
+    profile: mobileProfileSection,
+    vehicles: mobileVehiclesSection,
+    orders: mobileOrdersSection,
+  };
+  const tabs = {
+    profile: mobileTabProfile,
+    vehicles: mobileTabVehicles,
+    orders: mobileTabOrders,
+  };
+
+  Object.entries(sections).forEach(([key, el]) => {
+    if (!el) return;
+    if (!isMobile) {
+      el.classList.remove("hidden-mobile-section");
+      return;
+    }
+    el.classList.toggle("hidden-mobile-section", key !== section);
+  });
+
+  Object.entries(tabs).forEach(([key, el]) => {
+    if (!el) return;
+    el.classList.toggle("active", key === section);
+  });
+}
+
+function initMobileCabinetTabs() {
+  if (mobileTabProfile) {
+    mobileTabProfile.addEventListener("click", () => setMobileCabinetSection("profile"));
+  }
+  if (mobileTabVehicles) {
+    mobileTabVehicles.addEventListener("click", () => setMobileCabinetSection("vehicles"));
+  }
+  if (mobileTabOrders) {
+    mobileTabOrders.addEventListener("click", () => setMobileCabinetSection("orders"));
+  }
+
+  setMobileCabinetSection("profile");
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth <= 700) {
+      const active =
+        mobileTabProfile?.classList.contains("active") ? "profile" :
+        mobileTabVehicles?.classList.contains("active") ? "vehicles" :
+        "orders";
+      setMobileCabinetSection(active);
+    } else {
+      setMobileCabinetSection("profile");
+    }
+  });
+}
+
 
 const ORDERS_CACHE_KEY = "cabinet_orders_cache";
 
@@ -107,7 +173,6 @@ function showLogin() {
   profileSetupScreen.classList.add("hidden");
   cabinetScreen.classList.add("hidden");
   logoutBtn.classList.add("hidden");
-  topbarContactLink.classList.add("hidden");
   closeOrderModal(false);
   closeVehicleModal(true);
 }
@@ -118,7 +183,6 @@ function showCode() {
   profileSetupScreen.classList.add("hidden");
   cabinetScreen.classList.add("hidden");
   logoutBtn.classList.add("hidden");
-  topbarContactLink.classList.add("hidden");
 }
 
 function showProfileSetup(user = null) {
@@ -127,7 +191,6 @@ function showProfileSetup(user = null) {
   profileSetupScreen.classList.remove("hidden");
   cabinetScreen.classList.add("hidden");
   logoutBtn.classList.remove("hidden");
-  topbarContactLink.classList.add("hidden");
 
   if (user) {
     setupNameInput.value = user.name || "";
@@ -141,7 +204,6 @@ function showCabinet() {
   profileSetupScreen.classList.add("hidden");
   cabinetScreen.classList.remove("hidden");
   logoutBtn.classList.remove("hidden");
-  topbarContactLink.classList.remove("hidden");
 }
 
 function setMessage(el, text, isError = false) {
@@ -200,6 +262,46 @@ function applyTheme(theme) {
   themeToggleBtn.textContent = theme === "dark" ? "☀️ Тема" : "🌙 Тема";
 }
 
+
+function syncMobileProfileDetailsState() {
+  const isMobile = window.innerWidth <= 700;
+  if (!profileDetailsBlock || !profileMoreBtn) return;
+
+  if (!isMobile) {
+    profileDetailsBlock.classList.remove("hidden-mobile-details");
+    profileMoreBtn.classList.add("hidden");
+    profileMoreBtn.textContent = "Подробнее";
+    return;
+  }
+
+  profileMoreBtn.classList.remove("hidden");
+  profileMoreBtn.textContent = profileDetailsBlock.classList.contains("hidden-mobile-details") ? "Подробнее" : "Скрыть";
+}
+
+function initMobileProfileMore() {
+  if (!profileDetailsBlock || !profileMoreBtn) return;
+
+  if (window.innerWidth <= 700) {
+    profileDetailsBlock.classList.add("hidden-mobile-details");
+  }
+
+  profileMoreBtn.addEventListener("click", () => {
+    profileDetailsBlock.classList.toggle("hidden-mobile-details");
+    syncMobileProfileDetailsState();
+  });
+
+  syncMobileProfileDetailsState();
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth <= 700) {
+      if (!profileDetailsBlock.classList.contains("hidden-mobile-details") && profileMoreBtn.textContent !== "Скрыть") {
+        profileDetailsBlock.classList.add("hidden-mobile-details");
+      }
+    }
+    syncMobileProfileDetailsState();
+  });
+}
+
 function initTheme() {
   const saved = localStorage.getItem("cabinet_theme") || "light";
   applyTheme(saved);
@@ -211,15 +313,44 @@ function initTheme() {
 }
 
 function applyStaticLinks() {
-  [topbarContactLink, profileContactLink].forEach((link) => {
-    if (!link) return;
-    link.href = SERVICE_CONTACT_URL;
-    link.classList.remove("hidden");
-  });
+  const phoneHref = `tel:${SERVICE_PHONE}`;
+  const tgHref = SERVICE_CONTACT_URL;
+  const reviewHref = SERVICE_REVIEW_URL;
 
-  if (profileReviewLink) {
-    profileReviewLink.href = SERVICE_REVIEW_URL;
-    profileReviewLink.classList.remove("hidden");
+  const phoneIds = ["contactBtn", "profileContactBtn", "callBtn"];
+  const tgIds = ["telegramBtn", "profileTelegramBtn"];
+  const reviewIds = ["reviewBtn", "profileReviewBtn"];
+
+  for (const id of phoneIds) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (el.tagName === "A") el.href = phoneHref;
+    el.onclick = () => { window.location.href = phoneHref; };
+    if (id !== "contactBtn") el.textContent = "Позвонить";
+  }
+
+  for (const id of tgIds) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (el.tagName === "A") el.href = tgHref;
+    else el.onclick = () => window.open(tgHref, "_blank", "noopener,noreferrer");
+    if (el.tagName === "A") {
+      el.target = "_blank";
+      el.rel = "noopener noreferrer";
+    }
+    el.textContent = "Telegram";
+  }
+
+  for (const id of reviewIds) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (el.tagName === "A") el.href = reviewHref;
+    else el.onclick = () => window.open(reviewHref, "_blank", "noopener,noreferrer");
+    if (el.tagName === "A") {
+      el.target = "_blank";
+      el.rel = "noopener noreferrer";
+    }
+    el.textContent = "Оставить отзыв";
   }
 }
 
@@ -273,7 +404,7 @@ async function verifyCode() {
 
 async function saveProfile() {
   const name = setupNameInput.value.trim();
-  const birth_date = setupBirthDateInput.value;
+  const birth_date = "";
 
   setMessage(profileSetupMessage, "Сохранение профиля...");
 
@@ -295,6 +426,8 @@ function renderBonus(profile) {
   const bonus = profile.bonus || {};
 
   bonusBalance.textContent = formatMoney(bonus.balance || 0);
+  if (mobileBonusBalance) mobileBonusBalance.textContent = formatMoney(bonus.balance || 0);
+  if (mobileBonusBalance) mobileBonusBalance.textContent = formatMoney(bonus.balance || 0);
   bonusTier.textContent = bonus.tier_label || "2%";
   bonusTotalSpent.textContent = formatMoney(bonus.total_spent || 0);
 
@@ -337,8 +470,8 @@ function renderCustomerSummary(profile) {
   firstVisitDate.textContent = summary.first_visit_label || "—";
   profileBirthDate.textContent = formatDate(profile.birth_date);
 
-  if (mobileProfileName) mobileProfileName.textContent = profile.name || "Без имени";
-  if (mobileProfilePhone) mobileProfilePhone.textContent = profile.phone || "—";
+  if (profileName) profileName.textContent = profile.name || "Без имени";
+  if (profilePhone) profilePhone.textContent = profile.phone || "—";
 
   allVehicles = vehicles;
 
@@ -414,10 +547,11 @@ async function loadProfile() {
   currentProfile = profile;
   saveCachedProfile(profile);
 
-  profileName.textContent = profile.name || "Без имени";
-  profilePhone.textContent = profile.phone || "—";
+  if (profileName) profileName.textContent = profile.name || "Без имени";
+  if (profilePhone) profilePhone.textContent = profile.phone || "—";
 
   applyStaticLinks();
+  ensureServiceButtons();
   renderBonus(profile);
   renderCustomerSummary(profile);
 
@@ -454,7 +588,7 @@ function renderOrderPhotoPreview(order) {
   return `
     <div class="order-preview-photos">
       ${photos.map((url, index) => `
-        <a class="order-preview-photo-link" href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">
+        <a class="order-preview-photo-link" href="#" onclick="openImageViewer('${escapeJs(url)}'); return false;">
           <img class="order-preview-photo" src="${escapeAttribute(url)}" alt="Фото заказа ${index + 1}" loading="lazy" />
         </a>
       `).join("")}
@@ -557,7 +691,7 @@ function renderPhotos(order) {
   return `
     <div class="photo-grid">
       ${photos.map((url, index) => `
-        <a class="photo-link" href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">
+        <a class="photo-link" href="#" onclick="openImageViewer('${escapeJs(url)}'); return false;">
           <img class="order-photo" src="${escapeAttribute(url)}" alt="Фото заказа ${index + 1}" loading="lazy" />
         </a>
       `).join("")}
@@ -568,7 +702,8 @@ function renderPhotos(order) {
 function renderActionButtons() {
   return `
     <div class="action-buttons">
-      <a class="btn btn-primary action-link" href="${escapeAttribute(SERVICE_CONTACT_URL)}" target="_blank" rel="noopener noreferrer">Связаться с сервисом</a>
+      <a class="btn btn-primary action-link" href="tel:${escapeAttribute(SERVICE_PHONE)}">Позвонить</a>
+      <a class="btn btn-secondary action-link" href="${escapeAttribute(SERVICE_CONTACT_URL)}" target="_blank" rel="noopener noreferrer" title="Telegram">Telegram</a>
       <a class="btn btn-secondary action-link" href="${escapeAttribute(SERVICE_REVIEW_URL)}" target="_blank" rel="noopener noreferrer">Оставить отзыв</a>
     </div>
   `;
@@ -659,7 +794,7 @@ function renderVehicleDetail(vehicle) {
     ? `
       <div class="photo-grid">
         ${photos.map((url, index) => `
-          <a class="photo-link" href="${escapeAttribute(url)}" target="_blank" rel="noopener noreferrer">
+          <a class="photo-link" href="#" onclick="openImageViewer('${escapeJs(url)}'); return false;">
             <img class="order-photo" src="${escapeAttribute(url)}" alt="Фото автомобиля ${index + 1}" loading="lazy" />
           </a>
         `).join("")}
@@ -782,7 +917,28 @@ async function openOrderDetail(orderId, fromVehicle = false) {
 
     renderOrderDetail(data, fromVehicle);
   } catch (error) {
-    alert(error.message);
+    const fallback = (allOrders || []).find((order) => String(order.id) === String(orderId));
+
+    if (fallback) {
+      const fallbackDetail = {
+        ...fallback,
+        positions: Array.isArray(fallback.positions) ? fallback.positions : [],
+        timeline: Array.isArray(fallback.timeline) ? fallback.timeline : [],
+        photos: Array.isArray(fallback.photos) ? fallback.photos : [],
+        paid: Number(fallback.paid || 0),
+        debt: Number(fallback.debt || 0),
+        comment: fallback.comment || "",
+        shortStatus: fallback.shortStatus || fallback.status || "—",
+        createdLabel: fallback.createdLabel || fallback.createdDateLabel || "—",
+        vehicleLabel: fallback.vehicleLabel || fallback.vehicleKey || fallback.deviceLabel || "—",
+        summary: fallback.summary || fallback.problemText || "Описание временно недоступно",
+      };
+
+      renderOrderDetail(fallbackDetail, fromVehicle);
+      return;
+    }
+
+    alert(error.message || "Не удалось открыть заказ");
   }
 }
 
@@ -906,6 +1062,28 @@ function escapeJs(value) {
     .replaceAll("'", "\\'");
 }
 
+
+function ensureServiceButtons() {
+  const phoneHref = `tel:${SERVICE_PHONE}`;
+  const tgHref = SERVICE_CONTACT_URL;
+  const reviewHref = SERVICE_REVIEW_URL;
+
+  if (topbarContactLink) {
+    topbarContactLink.remove();
+  }
+
+  const row = document.querySelector(".profile-card .quick-actions");
+  if (!row) return;
+
+  row.id = "profileServiceButtons";
+  row.classList.remove("hidden");
+  row.innerHTML = `
+    <a id="profileContactBtn" class="btn btn-primary" href="${phoneHref}">Позвонить</a>
+    <a id="profileTelegramBtn" class="btn btn-secondary" href="${tgHref}" target="_blank" rel="noopener noreferrer">Telegram</a>
+    <a id="profileReviewBtn" class="btn review-emphasis" href="${reviewHref}" target="_blank" rel="noopener noreferrer">Оставить отзыв</a>
+  `;
+}
+
 sendCodeBtn.addEventListener("click", sendCode);
 verifyCodeBtn.addEventListener("click", verifyCode);
 backToPhoneBtn.addEventListener("click", showLogin);
@@ -923,5 +1101,200 @@ window.openOrderDetail = openOrderDetail;
 window.openVehicleDetail = openVehicleDetail;
 window.openOrderFromVehicle = openOrderFromVehicle;
 
+let imageViewerOverlay = null;
+let imageViewerImage = null;
+let imageViewerPrevBtn = null;
+let imageViewerNextBtn = null;
+let imageViewerCounter = null;
+let imageViewerItems = [];
+let imageViewerIndex = 0;
+let imageViewerTouchStartX = 0;
+let imageViewerTouchEndX = 0;
+
+function collectViewerImages(url) {
+  if (!url) return [url];
+
+  const urls = [];
+  document.querySelectorAll(".photo-link img, .order-preview-photo-link img").forEach((img) => {
+    const src = img.getAttribute("src");
+    if (src && !urls.includes(src)) urls.push(src);
+  });
+
+  if (!urls.length) return [url];
+  if (!urls.includes(url)) urls.unshift(url);
+  return urls;
+}
+
+function updateImageViewer() {
+  if (!imageViewerImage || !imageViewerItems.length) return;
+
+  imageViewerImage.src = imageViewerItems[imageViewerIndex] || "";
+  if (imageViewerCounter) {
+    imageViewerCounter.textContent = `${imageViewerIndex + 1} / ${imageViewerItems.length}`;
+  }
+
+  const many = imageViewerItems.length > 1;
+  if (imageViewerPrevBtn) imageViewerPrevBtn.style.display = many ? "flex" : "none";
+  if (imageViewerNextBtn) imageViewerNextBtn.style.display = many ? "flex" : "none";
+}
+
+function showPrevImage() {
+  if (!imageViewerItems.length) return;
+  imageViewerIndex = (imageViewerIndex - 1 + imageViewerItems.length) % imageViewerItems.length;
+  updateImageViewer();
+}
+
+function showNextImage() {
+  if (!imageViewerItems.length) return;
+  imageViewerIndex = (imageViewerIndex + 1) % imageViewerItems.length;
+  updateImageViewer();
+}
+
+function ensureImageViewer() {
+  if (imageViewerOverlay) return;
+
+  imageViewerOverlay = document.createElement("div");
+  imageViewerOverlay.id = "imageViewerOverlay";
+  imageViewerOverlay.className = "hidden";
+  imageViewerOverlay.style.position = "fixed";
+  imageViewerOverlay.style.inset = "0";
+  imageViewerOverlay.style.background = "rgba(0, 0, 0, 0.88)";
+  imageViewerOverlay.style.display = "flex";
+  imageViewerOverlay.style.alignItems = "center";
+  imageViewerOverlay.style.justifyContent = "center";
+  imageViewerOverlay.style.padding = "24px";
+  imageViewerOverlay.style.zIndex = "9999";
+  imageViewerOverlay.style.touchAction = "pan-y";
+  imageViewerOverlay.innerHTML = `
+    <button id="imageViewerClose" type="button" style="position:absolute;top:16px;right:16px;font-size:28px;line-height:1;border:none;border-radius:10px;padding:8px 12px;cursor:pointer;z-index:2;">×</button>
+    <button id="imageViewerPrev" type="button" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:30px;line-height:1;border:none;border-radius:999px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">‹</button>
+    <img id="imageViewerImg" src="" alt="Просмотр фото" style="max-width:95vw;max-height:90vh;object-fit:contain;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.45);" />
+    <button id="imageViewerNext" type="button" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:30px;line-height:1;border:none;border-radius:999px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;">›</button>
+    <div id="imageViewerCounter" style="position:absolute;left:50%;bottom:16px;transform:translateX(-50%);padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.12);color:#fff;font-size:14px;z-index:2;">1 / 1</div>
+  `;
+
+  document.body.appendChild(imageViewerOverlay);
+  imageViewerImage = document.getElementById("imageViewerImg");
+  imageViewerPrevBtn = document.getElementById("imageViewerPrev");
+  imageViewerNextBtn = document.getElementById("imageViewerNext");
+  imageViewerCounter = document.getElementById("imageViewerCounter");
+
+  imageViewerOverlay.addEventListener("click", (e) => {
+    if (e.target === imageViewerOverlay || e.target.id === "imageViewerClose") {
+      closeImageViewer();
+    }
+  });
+
+  imageViewerPrevBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    showPrevImage();
+  });
+
+  imageViewerNextBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    showNextImage();
+  });
+
+  imageViewerOverlay.addEventListener("touchstart", (e) => {
+    imageViewerTouchStartX = e.changedTouches[0].clientX;
+    imageViewerTouchEndX = imageViewerTouchStartX;
+  }, { passive: true });
+
+  imageViewerOverlay.addEventListener("touchmove", (e) => {
+    imageViewerTouchEndX = e.changedTouches[0].clientX;
+  }, { passive: true });
+
+  imageViewerOverlay.addEventListener("touchend", () => {
+    const delta = imageViewerTouchEndX - imageViewerTouchStartX;
+    if (Math.abs(delta) < 40) return;
+    if (delta < 0) showNextImage();
+    else showPrevImage();
+  }, { passive: true });
+
+  document.addEventListener("keydown", (e) => {
+    if (!imageViewerOverlay || imageViewerOverlay.classList.contains("hidden")) return;
+    if (e.key === "Escape") closeImageViewer();
+    if (e.key === "ArrowLeft") showPrevImage();
+    if (e.key === "ArrowRight") showNextImage();
+  });
+}
+
+function openImageViewer(url) {
+  if (!url) return;
+  ensureImageViewer();
+  imageViewerItems = collectViewerImages(url);
+  imageViewerIndex = Math.max(0, imageViewerItems.indexOf(url));
+  updateImageViewer();
+  imageViewerOverlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeImageViewer() {
+  if (!imageViewerOverlay) return;
+  imageViewerOverlay.classList.add("hidden");
+  if (imageViewerImage) imageViewerImage.src = "";
+  imageViewerItems = [];
+  imageViewerIndex = 0;
+  document.body.style.overflow = "";
+}
+
+window.openImageViewer = openImageViewer;
+
 initTheme();
+ensureServiceButtons();
+initMobileCabinetTabs();
 checkSession();
+
+
+
+/* === HOTFIX UI FINAL === */
+(function () {
+  function syncProfileUiHotfix() {
+    const btn = document.getElementById("profileMoreBtn");
+    const block = document.getElementById("profileDetailsBlock");
+
+    if (typeof setMobileCabinetSection === "function") {
+      setMobileCabinetSection("profile");
+    }
+
+    if (!btn || !block) return;
+
+    const isMobile = window.innerWidth <= 700;
+
+    if (isMobile) {
+      btn.classList.remove("hidden");
+      if (!block.dataset.mobileInitDone) {
+        block.classList.add("hidden-mobile-details");
+        block.dataset.mobileInitDone = "1";
+      }
+      btn.textContent = block.classList.contains("hidden-mobile-details") ? "Подробнее" : "Скрыть";
+    } else {
+      btn.classList.add("hidden");
+      block.classList.remove("hidden-mobile-details");
+      btn.textContent = "Подробнее";
+    }
+  }
+
+  function bindProfileUiHotfix() {
+    const btn = document.getElementById("profileMoreBtn");
+    const block = document.getElementById("profileDetailsBlock");
+
+    if (btn && block && !btn.dataset.hotfixBound) {
+      btn.dataset.hotfixBound = "1";
+      btn.addEventListener("click", function () {
+        block.classList.toggle("hidden-mobile-details");
+        btn.textContent = block.classList.contains("hidden-mobile-details") ? "Подробнее" : "Скрыть";
+      });
+    }
+
+    syncProfileUiHotfix();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindProfileUiHotfix);
+  } else {
+    bindProfileUiHotfix();
+  }
+
+  window.addEventListener("resize", syncProfileUiHotfix);
+})();

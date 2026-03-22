@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Личный кабинет StarterSar</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
 </head>
 <body>
   <div class="page">
@@ -13,14 +14,13 @@
       <div class="brand">StarterSar</div>
 
       <div class="topbar-actions">
-        <a id="topbarContactLink" class="btn btn-ghost hidden topbar-link" href="#" target="_blank" rel="noopener noreferrer">Связь</a>
         <button id="themeToggleBtn" class="btn btn-ghost" type="button">🌙 Тема</button>
         <button id="logoutBtn" class="btn btn-ghost hidden" type="button">Выйти</button>
       </div>
     </header>
 
     <main class="container">
-      <section id="loginScreen" class="card auth-card">
+      <section id="loginScreen" class="card auth-card hidden">
         <h1>Личный кабинет</h1>
         <p class="muted">Войдите по номеру телефона</p>
 
@@ -53,8 +53,7 @@
         <label class="label" for="setupNameInput">Имя</label>
         <input id="setupNameInput" class="input" type="text" placeholder="Ваше имя" />
 
-        <label class="label" for="setupBirthDateInput">Дата рождения</label>
-        <input id="setupBirthDateInput" class="input" type="date" />
+        <input id="setupBirthDateInput" type="hidden" value="" />
 
         <div class="row">
           <button id="saveProfileBtn" class="btn btn-primary" type="button">Сохранить профиль</button>
@@ -64,30 +63,43 @@
       </section>
 
       <section id="cabinetScreen" class="hidden">
-        <div class="mobile-welcome card mobile-only">
-          <div class="mobile-welcome-name" id="mobileProfileName">—</div>
-          <div class="mobile-welcome-phone" id="mobileProfilePhone">—</div>
+
+        <div class="mobile-section-nav mobile-only">
+          <button id="mobileTabProfile" class="btn btn-secondary mobile-tab-btn active" type="button">Профиль</button>
+          <button id="mobileTabVehicles" class="btn btn-secondary mobile-tab-btn" type="button">Авто</button>
+          <button id="mobileTabOrders" class="btn btn-secondary mobile-tab-btn" type="button">Заказы</button>
         </div>
 
         <div class="dashboard">
           <aside class="sidebar-col">
+            <div id="mobileProfileSection" class="mobile-section-block">
             <div class="card profile-card">
               <div class="profile-badge">Наш любимый клиент</div>
               <div class="profile-since">с <span id="favoriteClientSince">—</span></div>
 
-              <div class="profile-hero-name" id="profileName">—</div>
-              <div class="profile-hero-phone" id="profilePhone">—</div>
+              <div class="profile-mobile-top">
+                <div class="profile-mobile-main">
+                  <div class="profile-hero-name" id="profileName">—</div>
+                  <div class="profile-hero-phone" id="profilePhone">—</div>
+                </div>
+                <div class="profile-mobile-side mobile-only">
+                  <div class="profile-inline-bonus">
+                    <div class="profile-inline-bonus-label">Бонусы</div>
+                    <div class="profile-inline-bonus-value" id="mobileBonusBalance">0 ₽</div>
+                  </div>
+                </div>
+              </div>
 
               <div class="quick-actions">
                 <a id="profileContactLink" class="btn btn-primary hidden" href="#" target="_blank" rel="noopener noreferrer">Связаться</a>
                 <a id="profileReviewLink" class="btn btn-secondary hidden" href="#" target="_blank" rel="noopener noreferrer">Оставить отзыв</a>
               </div>
 
-              <div class="profile-note">
-                Изменение данных профиля — через администратора сервиса.
+              <div class="profile-mobile-more-wrap mobile-only">
+                <button id="profileMoreBtn" class="btn btn-secondary profile-more-btn" type="button">Подробнее</button>
               </div>
 
-              <div class="stats-grid">
+              <div id="profileDetailsBlock" class="stats-grid hidden-mobile-details">
                 <div class="mini-stat">
                   <div class="mini-stat-label">Дата рождения</div>
                   <div class="mini-stat-value" id="profileBirthDate">—</div>
@@ -107,7 +119,7 @@
               </div>
             </div>
 
-            <div class="card bonus-card">
+            <div class="card bonus-card desktop-bonus-card">
               <div class="bonus-head">
                 <div>
                   <h2>Бонусный баланс</h2>
@@ -131,16 +143,20 @@
               </div>
               <div id="bonusHistoryList" class="bonus-history-list"></div>
             </div>
+            </div>
 
+            <div id="mobileVehiclesSection" class="mobile-section-block">
             <div class="card">
               <div class="section-head section-head-tight">
                 <h2>Автомобили клиента</h2>
               </div>
               <div id="vehiclesList" class="vehicles-list"></div>
             </div>
+            </div>
           </aside>
 
           <section class="content-col">
+            <div id="mobileOrdersSection" class="mobile-section-block">
             <div class="card orders-card">
               <div class="section-head orders-head">
                 <div>
@@ -158,6 +174,7 @@
 
               <div id="ordersMessage" class="message"></div>
               <div id="ordersList" class="orders-list"></div>
+            </div>
             </div>
           </section>
         </div>
