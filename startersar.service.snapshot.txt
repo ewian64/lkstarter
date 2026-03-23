@@ -1,0 +1,16 @@
+# /etc/systemd/system/startersar.service
+[Unit]
+Description=StarterSar Flask app
+After=network.target
+
+[Service]
+EnvironmentFile=/var/www/startersar/lkstarter/.env
+User=root
+WorkingDirectory=/var/www/startersar/lkstarter
+EnvironmentFile=/var/www/startersar/lkstarter/.env
+Environment="PATH=/var/www/startersar/venv/bin"
+ExecStart=/var/www/startersar/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
