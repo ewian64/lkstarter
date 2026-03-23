@@ -30,6 +30,12 @@ class Config:
 
     # Admin
     ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "change-admin-token")
+    ADMIN_PHONES = {
+        phone.strip()
+        for phone in os.getenv("ADMIN_PHONES", "").split(",")
+        if phone.strip()
+    }
+    ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")
 
     # Bonus program
-    BONUS_PROGRAM_START_DATE = os.getenv("BONUS_PROGRAM_START_DATE", "2026-03-19")
+    BONUS_PROGRAM_START_DATE = os.getenv("BONUS_PROGRAM_START_DATE", "2026-03-15")

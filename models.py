@@ -134,6 +134,23 @@ def get_user_by_id(user_id: int):
         return dict(row) if row else None
 
 
+def find_users_for_admin(phone_query: str = ""):
+    normalized = "".join(ch for ch in str(phone_query or "") if ch.isdigit())
+
+    with get_db() as conn:
+        if normalized:
+            rows = conn.execute(
+                "SELECT * FROM users WHERE REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '(', ''), ')', '') LIKE ? ORDER BY created_at DESC LIMIT 50",
+                (f"%{normalized}%",)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM users ORDER BY created_at DESC LIMIT 50"
+            ).fetchall()
+
+        return [dict(row) for row in rows]
+
+
 def create_user(phone: str, name: str = "", livesklad_counteragent_id: str = ""):
     now = datetime.utcnow().isoformat()
     with get_db() as conn:
@@ -165,6 +182,15 @@ def update_user_profile(user_id: int, name: str, birth_date: str):
             SET name = ?, birth_date = ?, profile_completed = 1
             WHERE id = ?
         """, (name, birth_date, user_id))
+
+
+def update_user_birth_date(user_id: int, birth_date: str):
+    with get_db() as conn:
+        conn.execute("""
+            UPDATE users
+            SET birth_date = ?
+            WHERE id = ?
+        """, (birth_date, user_id))
 
 
 def save_sms_code(phone: str, code: str, ttl_minutes: int = 5):
@@ -309,6 +335,31 @@ def increase_bonus_balance(user_id: int, amount: float):
         """, (amount, now, user_id))
 
 
+def adjust_bonus_balance(user_id: int, delta: float, operation_type: str, comment: str = ""):
+    ensure_bonus_account(user_id)
+    now = datetime.utcnow().isoformat()
+
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT balance FROM bonus_accounts WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+        current_balance = float(row["balance"]) if row else 0.0
+        new_balance = current_balance + float(delta)
+
+        if new_balance < 0:
+            raise ValueError("Недостаточно бонусов для списания")
+
+        conn.execute("""
+            UPDATE bonus_accounts
+            SET balance = ?, updated_at = ?
+            WHERE user_id = ?
+        """, (new_balance, now, user_id))
+
+    add_bonus_operation(user_id, float(delta), operation_type, comment)
+    return new_balance
+
+
 def increase_total_spent(user_id: int, amount: float):
     ensure_bonus_account(user_id)
     now = datetime.utcnow().isoformat()
@@ -359,3 +410,45 @@ def create_order_bonus_accrual(user_id: int, order_id: str, order_total: float, 
             INSERT INTO order_bonus_accruals (user_id, order_id, order_total, percent, bonus_amount, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (user_id, order_id, order_total, percent, bonus_amount, now))
+def list_order_bonus_accruals(user_id: int):
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT *
+            FROM order_bonus_accruals
+            WHERE user_id = ?
+            ORDER BY created_at ASC, id ASC
+        """, (user_id,)).fetchall()
+        return [dict(row) for row in rows]
+
+
+def get_order_cashback_operations_total(user_id: int) -> float:
+    with get_db() as conn:
+        row = conn.execute("""
+            SELECT COALESCE(SUM(amount), 0) AS total
+            FROM bonus_operations
+            WHERE user_id = ? AND operation_type = 'order_cashback'
+        """, (user_id,)).fetchone()
+        return float((dict(row).get("total") if row else 0) or 0.0)
+
+
+def reset_order_cashback_state(user_id: int):
+    ensure_bonus_account(user_id)
+    now = datetime.utcnow().isoformat()
+    cashback_total = get_order_cashback_operations_total(user_id)
+
+    with get_db() as conn:
+        conn.execute("""
+            DELETE FROM order_bonus_accruals
+            WHERE user_id = ?
+        """, (user_id,))
+
+        conn.execute("""
+            DELETE FROM bonus_operations
+            WHERE user_id = ? AND operation_type = 'order_cashback'
+        """, (user_id,))
+
+        conn.execute("""
+            UPDATE bonus_accounts
+            SET balance = balance - ?, total_spent = 0, updated_at = ?
+            WHERE user_id = ?
+        """, (cashback_total, now, user_id))

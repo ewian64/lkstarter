@@ -175,7 +175,10 @@ def get_token():
     data = response.json()
 
     if response.status_code != 200:
-        raise Exception(data.get("error", {}).get("message", "Ошибка авторизации LiveSklad"))
+        message = data.get("error", {}).get("message", "Ошибка авторизации LiveSklad")
+        if message == "Too Many Requests" and TOKEN_CACHE["token"]:
+            return TOKEN_CACHE["token"]
+        raise Exception(f"{message} :: {data}")
 
     token = data.get("token")
     ttl = data.get("ttl", 900)
@@ -449,12 +452,6 @@ def enrich_orders_with_vin(orders):
     enriched = []
     for order in orders or []:
         vin = extract_vin(order) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
-        if not vin and order.get("id"):
-            try:
-                detail = fetch_order_detail(order.get("id"))
-                vin = extract_vin(detail) or get_custom_field_value(detail, VIN_CUSTOM_FIELD_ID)
-            except Exception:
-                vin = ""
         if vin:
             order = dict(order)
             order["vin"] = vin
@@ -462,15 +459,119 @@ def enrich_orders_with_vin(orders):
         enriched.append(order)
     return enriched
 
+
+def extract_payment_total_from_events(items):
+    if not isinstance(items, list):
+        items = [items] if items else []
+
+    total = 0.0
+    found = False
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        text = " ".join(
+            str(item.get(k) or "").strip()
+            for k in ("title", "name", "type", "event", "kind", "action", "label", "subtitle", "description", "comment", "status")
+        ).lower()
+
+        amount = 0.0
+        for key in ("sum", "amount", "value", "total", "price", "order"):
+            try:
+                amount = to_number(item.get(key, 0))
+            except Exception:
+                amount = 0.0
+            if amount:
+                break
+
+        if amount <= 0:
+            for key in ("payment", "cash", "money", "details", "meta"):
+                nested = item.get(key)
+                if isinstance(nested, dict):
+                    for nested_key in ("sum", "amount", "value", "total", "price", "order"):
+                        try:
+                            amount = to_number(nested.get(nested_key, 0))
+                        except Exception:
+                            amount = 0.0
+                        if amount:
+                            break
+                if amount:
+                    break
+
+        if amount <= 0:
+            continue
+
+        if "возврат" in text or "refund" in text or "return" in text:
+            total -= abs(amount)
+            found = True
+        elif "оплат" in text or "payment" in text or "безнал" in text or "налич" in text:
+            total += abs(amount)
+            found = True
+
+    return round(total, 2) if found else None
+
+
+def compute_paid_amount(order):
+    for key in ("history", "timeline", "operations", "payments", "payment"):
+        total = extract_payment_total_from_events(order.get(key))
+        if total is not None:
+            return max(total, 0.0)
+
+    cash = order.get("cash", {})
+    if isinstance(cash, dict):
+        gross = to_number(cash.get("order", 0)) or to_number(cash.get("summ", 0)) or to_number(cash.get("amount", 0)) or 0.0
+        refund = to_number(cash.get("return", 0)) or to_number(cash.get("refund", 0)) or 0.0
+        return max(round(gross - refund, 2), 0.0)
+
+    return 0.0
+
+
+def compute_order_total(price, sold_price, positions, paid_value=0.0):
+    total = sold_price if sold_price > 0 else price
+    if total <= 0 and positions:
+        total = round(sum(float((x or {}).get("lineTotal") or 0) for x in positions), 2)
+    if total <= 0 and paid_value > 0:
+        total = round(float(paid_value), 2)
+    return round(total, 2)
+
 def format_order(order):
     counteragent = order.get("counteragent", {})
     status = order.get("status", {})
     summ = order.get("summ", {})
+    cash = order.get("cash", {})
+    raw_positions = order.get("positions", [])
     status_info = status_meta(status.get("name"))
 
     price = to_number(summ.get("price", 0))
     sold_price = to_number(summ.get("soldPrice", 0))
     total = sold_price if sold_price > 0 else price
+
+    paid_value = compute_paid_amount(order)
+
+    positions = []
+    if isinstance(raw_positions, list):
+        for p in raw_positions:
+            if not isinstance(p, dict):
+                continue
+
+            count = to_number(p.get("count", 0))
+            line_price = to_number(p.get("soldPrice", 0)) * count
+            if line_price <= 0:
+                line_price = to_number(p.get("price", 0)) * count
+
+            positions.append({
+                "name": p.get("name"),
+                "article": p.get("article"),
+                "isWork": bool(p.get("isWork", False)),
+                "price": to_number(p.get("price", 0)),
+                "soldPrice": to_number(p.get("soldPrice", 0)),
+                "count": count,
+                "countLabel": f"{int(count) if float(count).is_integer() else count} шт",
+                "lineTotal": line_price,
+            })
+
+    debt = max(total - paid_value, 0)
 
     device_label = build_device_label(order)
     vehicle_key = build_vehicle_key(order)
@@ -500,6 +601,9 @@ def format_order(order):
         "statusStage": status_info["stage"],
         "price": price,
         "soldPrice": sold_price,
+        "paid": paid_value,
+        "debt": debt,
+        "positions": positions,
         "paymentLabel": format_money_short(total),
         "summary": summary,
         "vin": vin,
@@ -507,7 +611,6 @@ def format_order(order):
         "photos": image_urls,
         "photosCount": len(image_urls),
     }
-
 
 def format_order_detail(order):
     counteragent = order.get("counteragent", {})
@@ -537,12 +640,9 @@ def format_order_detail(order):
 
     price = to_number(summ.get("price", 0))
     sold_price = to_number(summ.get("soldPrice", 0))
-    paid_value = 0.0
+    paid_value = compute_paid_amount(order)
 
-    if isinstance(cash, dict):
-        paid_value = to_number(cash.get("order", 0)) or to_number(cash.get("summ", 0)) or 0.0
-
-    total = sold_price if sold_price > 0 else price
+    total = compute_order_total(price, sold_price, positions, paid_value)
     debt = max(total - paid_value, 0)
     device_label = build_device_label(order)
     vehicle_key = build_vehicle_key(order)

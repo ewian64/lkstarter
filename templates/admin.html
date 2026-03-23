@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Админка StarterSar</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">StarterSar Admin</div>
+      <div class="topbar-actions">
+        <form method="post" action="/admin/logout">
+          <button class="btn btn-ghost" type="submit">Выйти</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <h1>Админка</h1>
+        <p class="muted">Вход выполнен: {{ admin_phone }}</p>
+      </section>
+
+      <section class="card">
+        <h2>Поиск</h2>
+        <div class="row">
+          <input id="adminSearchInput" class="input" type="text" placeholder="Заказ, телефон, VIN" />
+          <button id="adminSearchBtn" class="btn btn-primary" type="button">Найти</button>
+        </div>
+        <p id="adminSearchMessage" class="message"></p>
+      </section>
+
+      <section class="card">
+        <h2>Результаты</h2>
+        <div id="adminResults" class="muted">Здесь будут клиенты и заказ-наряды.</div>
+      </section>
+
+      <div id="adminClientModal" class="modal hidden">
+        <div id="adminClientModalBackdrop" class="modal-backdrop"></div>
+        <div class="modal-dialog" style="background:#f3f6fb;border:1px solid #d6deea;">
+          <div class="modal-head">
+            <div class="modal-head-left">
+              <h2>Карточка клиента</h2>
+            </div>
+            <div class="modal-head-actions">
+              <button id="closeAdminClientBtn" class="btn btn-secondary" type="button">Закрыть</button>
+            </div>
+          </div>
+          <div id="adminClientCard" class="muted">Выбери клиента из результатов поиска.</div>
+        </div>
+      </div>
+      <div id="adminOrderModal" class="modal hidden">
+        <div id="adminOrderModalBackdrop" class="modal-backdrop"></div>
+        <div class="modal-dialog" style="background:#f3f6fb;border:1px solid #d6deea;">
+          <div class="modal-head">
+            <div class="modal-head-left">
+              <h2>Карточка заказа</h2>
+            </div>
+            <div class="modal-head-actions">
+              <button id="closeAdminOrderBtn" class="btn btn-secondary" type="button">Закрыть</button>
+            </div>
+          </div>
+          <div id="adminOrderCard" class="muted">Выбери заказ.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    window.adminClientOrdersMap = {};
+
+    async function runAdminSearch() {
+      const input = document.getElementById("adminSearchInput");
+      const message = document.getElementById("adminSearchMessage");
+      const results = document.getElementById("adminResults");
+
+      const q = (input.value || "").trim();
+
+      message.textContent = "Ищу...";
+      results.innerHTML = "";
+
+      try {
+        const response = await fetch(`/admin/search?q=${encodeURIComponent(q)}`, {
+          credentials: "include"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка поиска");
+        }
+
+        message.textContent = data.count ? `Найдено: ${data.count}` : "Ничего не найдено";
+
+        if (!data.results || !data.results.length) {
+          results.innerHTML = '<div class="muted">Совпадений нет</div>';
+          return;
+        }
+
+        results.innerHTML = data.results.map((item) => {
+          const user = item.user || {};
+          const orders = Array.isArray(item.orders) ? item.orders : [];
+
+          return `
+            <div class="card" style="margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+                <div>
+                  <div style="font-size:22px;font-weight:800;margin-bottom:8px;">${escapeHtml(user.name || "Без имени")}</div>
+                  <div class="muted" style="margin-bottom:6px;">Телефон: ${escapeHtml(user.phone || "—")}</div>
+                  <div class="muted" style="margin-bottom:14px;">Дата рождения: ${escapeHtml(user.birth_date || "—")}</div>
+                </div>
+                <button class="btn btn-secondary" type="button" onclick="openAdminClient(${Number(user.id || 0)})">Открыть клиента</button>
+              </div>
+
+              <div class="muted">
+                ${orders.length ? `Подходящих заказов: ${orders.length}` : 'Подходящих заказов не найдено'}
+              </div>
+            </div>
+          `;
+        }).join("");
+      } catch (error) {
+        message.textContent = error.message || "Ошибка поиска";
+        results.innerHTML = "";
+      }
+    }
+
+
+    function closeAdminClientModal() {
+      const modal = document.getElementById("adminClientModal");
+      if (!modal) return;
+      modal.classList.add("hidden");
+      document.body.classList.remove("modal-open");
+    }
+
+    function toggleAdminClientOrders() {
+      const wrap = document.getElementById("adminClientOrdersWrap");
+      const btn = document.getElementById("adminClientOrdersToggle");
+      if (!wrap || !btn) return;
+      const hidden = wrap.classList.toggle("hidden");
+      btn.textContent = hidden ? "Показать заказы" : "Скрыть заказы";
+    }
+
+    async function openAdminClient(userId) {
+      const modal = document.getElementById("adminClientModal");
+      const card = document.getElementById("adminClientCard");
+
+      modal.classList.remove("hidden");
+      document.body.classList.add("modal-open");
+      card.innerHTML = "Загрузка...";
+
+      try {
+        const response = await fetch(`/admin/client/${userId}`, {
+          credentials: "include"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка загрузки клиента");
+        }
+
+        const client = data.client || {};
+        const bonus = data.bonus || {};
+        const history = Array.isArray(data.bonus_history) ? data.bonus_history : [];
+        const orders = Array.isArray(data.orders) ? data.orders : [];
+
+        window.adminClientOrdersMap = {};
+        for (const order of orders) {
+          if (order && order.id) {
+            window.adminClientOrdersMap[String(order.id)] = order;
+          }
+        }
+
+        card.innerHTML = `
+          <div style="display:grid;gap:18px;">
+            <div>
+              <div style="font-size:24px;font-weight:800;margin-bottom:8px;">${escapeHtml(client.name || "Без имени")}</div>
+              <div class="muted">Телефон: ${escapeHtml(client.phone || "—")}</div>
+              <div class="muted">Дата рождения: <span id="adminClientBirthDateValue">${escapeHtml(client.birth_date || "—")}</span></div>
+            </div>
+
+            <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));">
+              <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+                <div style="font-weight:700;margin-bottom:10px;">Изменить дату рождения</div>
+                <div style="display:grid;gap:10px;">
+                  <input id="adminBirthDateInput" class="input" type="date" value="${escapeHtml(client.birth_date || "")}">
+                  <button class="btn btn-primary" type="button" onclick="saveAdminClientBirthDate(${Number(client.id || 0)})">Сохранить дату рождения</button>
+                  <div id="adminBirthDateMessage" class="muted"></div>
+                </div>
+              </div>
+
+              <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+                <div style="font-weight:700;margin-bottom:10px;">Начислить бонусы</div>
+                <div style="display:grid;gap:10px;">
+                  <input id="adminBonusAddAmount" class="input" type="number" min="1" step="1" placeholder="Сумма">
+                  <input id="adminBonusAddComment" class="input" type="text" placeholder="Комментарий">
+                  <button class="btn btn-primary" type="button" onclick="adjustAdminClientBonus(${Number(client.id || 0)}, 'add')">Начислить</button>
+                </div>
+              </div>
+
+              <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+                <div style="font-weight:700;margin-bottom:10px;">Списать бонусы</div>
+                <div style="display:grid;gap:10px;">
+                  <input id="adminBonusSubtractAmount" class="input" type="number" min="1" step="1" placeholder="Сумма">
+                  <input id="adminBonusSubtractComment" class="input" type="text" placeholder="Комментарий">
+                  <button class="btn btn-secondary" type="button" onclick="adjustAdminClientBonus(${Number(client.id || 0)}, 'subtract')">Списать</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="adminBonusActionMessage" class="muted"></div>
+
+            <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+              <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+                <div class="muted">Бонусы</div>
+                <div style="font-size:24px;font-weight:800;margin-top:6px;">${escapeHtml((bonus.balance ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              </div>
+              <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+                <div class="muted">Уровень</div>
+                <div style="font-size:24px;font-weight:800;margin-top:6px;">${escapeHtml(bonus.tier_label || "—")}</div>
+              </div>
+              <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+                <div class="muted">Накоплено</div>
+                <div style="font-size:24px;font-weight:800;margin-top:6px;">${escapeHtml((bonus.total_spent ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              </div>
+            </div>
+
+            <div>
+              <h3 style="margin:0 0 10px;">История бонусов</h3>
+              ${
+                history.length
+                  ? `<div style="display:grid;gap:10px;padding:16px;border:1px solid #bfc9d9;border-radius:16px;background:#ffffff;box-shadow:0 8px 22px rgba(15,23,42,.08);">
+                      ${history.map((item) => `
+                        <div style="padding:16px;border:1px solid #bfc9d9;border-radius:16px;background:#ffffff;box-shadow:0 8px 22px rgba(15,23,42,.08);">
+                          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                            <strong>${escapeHtml(item.title || "Операция")}</strong>
+                            <span>${escapeHtml(item.amount_label || "0 ₽")}</span>
+                          </div>
+                          <div class="muted" style="margin-top:6px;">${escapeHtml(item.created_label || "—")}</div>
+                          <div style="margin-top:6px;">${escapeHtml(item.comment || "")}</div>
+                        </div>
+                      `).join("")}
+                    </div>`
+                  : '<div class="muted">История бонусов пуста</div>'
+              }
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                <h3 style="margin:0;">Заказы клиента</h3>
+                <button id="adminClientOrdersToggle" class="btn btn-secondary" type="button" onclick="toggleAdminClientOrders()">Показать заказы</button>
+              </div>
+              <div id="adminClientOrdersWrap" class="hidden">
+                ${
+                  orders.length
+                    ? `<div style="display:grid;gap:10px;">
+                        ${orders.map((order) => `
+                          <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+                            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+                              <div>
+                                <strong>Заказ № ${escapeHtml(order.number || "—")}</strong>
+                                <div class="muted" style="margin-top:6px;">${escapeHtml(order.createdLabel || "—")}</div>
+                              </div>
+                              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                                <span>${escapeHtml(order.shortStatus || order.status || "—")}</span>
+                                <button class="btn btn-secondary" type="button" onclick="openAdminOrder('${escapeHtml(order.id || "")}')">Открыть заказ</button>
+                              </div>
+                            </div>
+                            <div style="margin-top:6px;">${escapeHtml(order.vehicleLabel || order.deviceLabel || "—")}</div>
+                            <div class="muted" style="margin-top:4px;">VIN: ${escapeHtml(order.vin || order.vehicleVin || "—")}</div>
+                            <div style="margin-top:8px;">${escapeHtml(order.summary || "")}</div>
+                            <div style="margin-top:8px;font-weight:700;">${escapeHtml(order.paymentLabel || "")}</div>
+                          </div>
+                        `).join("")}
+                      </div>`
+                    : '<div class="muted">Заказов пока нет</div>'
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        card.innerHTML = `<div class="error-text">${escapeHtml(error.message || "Ошибка загрузки клиента")}</div>`;
+      }
+    }
+
+
+    function closeAdminOrderModal() {
+      const modal = document.getElementById("adminOrderModal");
+      if (!modal) return;
+      modal.classList.add("hidden");
+    }
+
+    async function openAdminOrder(orderId) {
+      const modal = document.getElementById("adminOrderModal");
+      const card = document.getElementById("adminOrderCard");
+      const summary = window.adminClientOrdersMap[String(orderId)] || null;
+
+      modal.classList.remove("hidden");
+
+      if (summary) {
+        card.innerHTML = `
+          <div style="display:grid;gap:16px;">
+            <div class="muted">Показаны краткие данные заказа. Пробую догрузить детали…</div>
+            <div style="display:grid;gap:10px;padding:16px;border:1px solid #bfc9d9;border-radius:16px;background:#ffffff;box-shadow:0 8px 22px rgba(15,23,42,.08);">
+              <div><strong>Заказ № ${escapeHtml(summary.number || summary.id || "—")}</strong></div>
+              <div>Статус: ${escapeHtml(summary.shortStatus || summary.status || "—")}</div>
+              <div>Создан: ${escapeHtml(summary.createdLabel || "—")}</div>
+              <div>Автомобиль: ${escapeHtml(summary.vehicleLabel || summary.deviceLabel || "—")}</div>
+              <div>VIN: ${escapeHtml(summary.vin || summary.vehicleVin || "—")}</div>
+              <div>Итого: ${escapeHtml((summary.soldPrice ?? summary.price ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              <div>Оплачено: ${escapeHtml((summary.paid ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              <div>Долг: ${escapeHtml((summary.debt ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              <div>Описание: ${escapeHtml(summary.summary || "—")}</div>
+            </div>
+            <div class="muted">Позиции, этапы и фото будут показаны после успешной догрузки деталей.</div>
+          </div>
+        `;
+      } else {
+        card.innerHTML = "Загрузка...";
+      }
+
+      try {
+        const response = await fetch(`/admin/order/${orderId}`, {
+          credentials: "include"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка загрузки заказа");
+        }
+
+        const order = data.order || {};
+        const positions = Array.isArray(order.positions) ? order.positions : [];
+        const timeline = Array.isArray(order.timeline) ? order.timeline : [];
+        const photos = Array.isArray(order.photos) ? order.photos : [];
+
+        card.innerHTML = `
+          <div style="display:grid;gap:16px;">
+            <div style="display:grid;gap:8px;">
+              <div><strong>Заказ № ${escapeHtml(order.number || order.id || "—")}</strong></div>
+              <div>Статус: ${escapeHtml(order.shortStatus || order.status || "—")}</div>
+              <div>Создан: ${escapeHtml(order.createdLabel || "—")}</div>
+              <div>Автомобиль: ${escapeHtml(order.vehicleLabel || order.deviceLabel || "—")}</div>
+              <div>VIN: ${escapeHtml(order.vin || order.vehicleVin || "—")}</div>
+              <div>Итого: ${escapeHtml((order.soldPrice ?? order.price ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              <div>Оплачено: ${escapeHtml((order.paid ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              <div>Долг: ${escapeHtml((order.debt ?? 0).toLocaleString('ru-RU'))} ₽</div>
+              <div>Описание: ${escapeHtml(order.summary || "—")}</div>
+              ${order.comment ? `<div>Комментарий: ${escapeHtml(order.comment)}</div>` : ""}
+            </div>
+
+            <div>
+              <h3 style="margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #d8e1ee;">Позиции</h3>
+              ${
+                positions.length
+                  ? `<div style="display:grid;gap:8px;">
+                      ${positions.map((pos) => `
+                        <div style="padding:16px;border:1px solid #bfc9d9;border-radius:16px;background:#ffffff;box-shadow:0 8px 22px rgba(15,23,42,.08);">
+                          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                            <strong>${escapeHtml(pos.name || "Позиция")}</strong>
+                            <span>${escapeHtml((pos.lineTotal ?? 0).toLocaleString('ru-RU'))} ₽</span>
+                          </div>
+                          <div class="muted" style="margin-top:6px;">
+                            ${pos.isWork ? "Работа" : "Запчасть"} · ${escapeHtml(pos.countLabel || "")} · ${escapeHtml((pos.soldPrice ?? pos.price ?? 0).toLocaleString('ru-RU'))} ₽
+                          </div>
+                          ${pos.article ? `<div class="muted" style="margin-top:4px;">Артикул: ${escapeHtml(pos.article)}</div>` : ""}
+                        </div>
+                      `).join("")}
+                    </div>`
+                  : '<div class="muted">Нет позиций</div>'
+              }
+            </div>
+
+            <div>
+              <h3 style="margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #d8e1ee;">Этапы</h3>
+              ${
+                timeline.length
+                  ? `<div style="display:grid;gap:8px;">
+                      ${timeline.map((item) => `
+                        <div style="padding:16px;border:1px solid #bfc9d9;border-radius:16px;background:#ffffff;box-shadow:0 8px 22px rgba(15,23,42,.08);">
+                          <strong>${escapeHtml(item.title || "")}</strong>
+                          <div class="muted" style="margin-top:6px;">${escapeHtml(item.subtitle || "")}</div>
+                        </div>
+                      `).join("")}
+                    </div>`
+                  : '<div class="muted">Нет этапов</div>'
+              }
+            </div>
+
+            <div>
+              <h3 style="margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #d8e1ee;">Фото</h3>
+              ${
+                photos.length
+                  ? `<div style="display:grid;gap:8px;">
+                      ${photos.map((url, i) => `
+                        <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Фото ${i + 1}</a>
+                      `).join("")}
+                    </div>`
+                  : '<div class="muted">Фотографий нет</div>'
+              }
+            </div>
+          </div>
+        `;
+      } catch (error) {
+        if (summary) {
+          const msg = String(error.message || "");
+          card.innerHTML = `
+            <div style="display:grid;gap:16px;">
+              <div class="muted">${escapeHtml(/Too Many Requests/i.test(msg) ? "LiveSklad временно ограничил запросы. Показаны краткие данные заказа." : "Не удалось догрузить детали. Показаны краткие данные заказа.")}</div>
+              <div style="display:grid;gap:8px;">
+                <div><strong>Заказ № ${escapeHtml(summary.number || summary.id || "—")}</strong></div>
+                <div>Статус: ${escapeHtml(summary.shortStatus || summary.status || "—")}</div>
+                <div>Создан: ${escapeHtml(summary.createdLabel || "—")}</div>
+                <div>Автомобиль: ${escapeHtml(summary.vehicleLabel || summary.deviceLabel || "—")}</div>
+                <div>VIN: ${escapeHtml(summary.vin || summary.vehicleVin || "—")}</div>
+                <div>Итого: ${escapeHtml((summary.soldPrice ?? summary.price ?? 0).toLocaleString('ru-RU'))} ₽</div>
+                <div>Оплачено: ${escapeHtml((summary.paid ?? 0).toLocaleString('ru-RU'))} ₽</div>
+                <div>Долг: ${escapeHtml((summary.debt ?? 0).toLocaleString('ru-RU'))} ₽</div>
+                <div>Описание: ${escapeHtml(summary.summary || "—")}</div>
+              </div>
+              <div class="muted">Позиции, этапы и фото сейчас недоступны.</div>
+            </div>
+          `;
+          return;
+        }
+
+        card.innerHTML = `<div class="error-text">${escapeHtml(error.message || "Ошибка загрузки заказа")}</div>`;
+      }
+    }
+
+
+    function renderAdminBonusHistory(history) {
+      if (!Array.isArray(history) || !history.length) {
+        return '<div class="muted">История бонусов пуста</div>';
+      }
+
+      return `<div style="display:grid;gap:8px;">
+        ${history.map((item) => `
+          <div style="padding:18px;border:1px solid #b8c4d6;border-radius:18px;background:#ffffff;box-shadow:0 10px 24px rgba(15,23,42,.08), 0 1px 0 rgba(15,23,42,.04);">
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <strong>${escapeHtml(item.title || "Операция")}</strong>
+              <span>${escapeHtml(item.amount_label || "0 ₽")}</span>
+            </div>
+            <div class="muted" style="margin-top:6px;">${escapeHtml(item.created_label || "—")}</div>
+            <div style="margin-top:6px;">${escapeHtml(item.comment || "")}</div>
+          </div>
+        `).join("")}
+      </div>`;
+    }
+
+    async function saveAdminClientBirthDate(userId) {
+      const input = document.getElementById("adminBirthDateInput");
+      const msg = document.getElementById("adminBirthDateMessage");
+      const valueEl = document.getElementById("adminClientBirthDateValue");
+
+      msg.textContent = "Сохраняю...";
+
+      try {
+        const response = await fetch(`/admin/client/${userId}/birth-date`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            birth_date: input.value || ""
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка сохранения даты рождения");
+        }
+
+        if (valueEl) valueEl.textContent = data.birth_date || "—";
+        msg.textContent = "Дата рождения сохранена";
+      } catch (error) {
+        msg.textContent = error.message || "Ошибка сохранения даты рождения";
+      }
+    }
+
+    async function adjustAdminClientBonus(userId, action) {
+      const amountInput = document.getElementById(action === "add" ? "adminBonusAddAmount" : "adminBonusSubtractAmount");
+      const commentInput = document.getElementById(action === "add" ? "adminBonusAddComment" : "adminBonusSubtractComment");
+      const msg = document.getElementById("adminBonusActionMessage");
+
+      msg.textContent = "Сохраняю...";
+
+      try {
+        const response = await fetch(`/admin/client/${userId}/bonus`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            action,
+            amount: amountInput.value,
+            comment: commentInput.value || ""
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка изменения бонусов");
+        }
+
+        const bonus = data.bonus || {};
+        const balanceCards = document.querySelectorAll("#adminClientCard .muted");
+        const cardRoot = document.getElementById("adminClientCard");
+
+        if (cardRoot) {
+          const html = cardRoot.innerHTML
+            .replace(/(<div class="muted">Бонусы<\/div>\s*<div style="font-size:24px;font-weight:800;margin-top:6px;">)(.*?)(<\/div>)/, `$1${escapeHtml((bonus.balance ?? 0).toLocaleString('ru-RU'))} ₽$3`)
+            .replace(/(<div class="muted">Уровень<\/div>\s*<div style="font-size:24px;font-weight:800;margin-top:6px;">)(.*?)(<\/div>)/, `$1${escapeHtml(bonus.tier_label || "—")}$3`)
+            .replace(/(<div class="muted">Накоплено<\/div>\s*<div style="font-size:24px;font-weight:800;margin-top:6px;">)(.*?)(<\/div>)/, `$1${escapeHtml((bonus.total_spent ?? 0).toLocaleString('ru-RU'))} ₽$3`)
+            .replace(/(<h3 style="margin:0 0 10px;">История бонусов<\/h3>)([\s\S]*?)(<\/div>\s*<div>\s*<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">)/, `$1${renderAdminBonusHistory(data.bonus_history || [])}$3`);
+          cardRoot.innerHTML = html;
+        }
+
+        amountInput.value = "";
+        commentInput.value = "";
+        msg.textContent = action === "add" ? "Бонусы начислены" : "Бонусы списаны";
+      } catch (error) {
+        msg.textContent = error.message || "Ошибка изменения бонусов";
+      }
+    }
+
+    document.getElementById("closeAdminClientBtn").addEventListener("click", closeAdminClientModal);
+    document.getElementById("adminClientModalBackdrop").addEventListener("click", closeAdminClientModal);
+    document.getElementById("closeAdminOrderBtn").addEventListener("click", closeAdminOrderModal);
+    document.getElementById("adminOrderModalBackdrop").addEventListener("click", closeAdminOrderModal);
+
+    document.getElementById("adminSearchBtn").addEventListener("click", runAdminSearch);
+    document.getElementById("adminSearchInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") runAdminSearch();
+    });
+  </script>
+
+</body>
+</html>

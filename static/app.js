@@ -215,6 +215,7 @@ function setMessage(el, text, isError = false) {
 async function api(url, options = {}) {
   const response = await fetch(url, {
     credentials: "include",
+    cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {})
@@ -246,6 +247,18 @@ function formatDate(value) {
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return value;
   return dt.toLocaleDateString("ru-RU");
+}
+
+function getPositionDisplayName(pos) {
+  const rawName = String(pos?.name || "Позиция").trim();
+  const article = String(pos?.article || "").trim();
+
+  if (!article) return rawName;
+
+  const escaped = article.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const tail = new RegExp(`(?:\\s+|[()\\-–—]+)${escaped}$`, "i");
+
+  return rawName.replace(tail, "").trim() || rawName;
 }
 
 function statusClass(tone) {
@@ -389,6 +402,11 @@ async function verifyCode() {
     });
 
     setMessage(codeMessage, "");
+
+    if (data.admin) {
+      window.location.href = "/admin";
+      return;
+    }
 
     if (!data.user?.profile_completed) {
       showProfileSetup(data.user);
@@ -540,9 +558,6 @@ async function loadProfile() {
     profile.customer_summary = cached.customer_summary;
   }
 
-  if ((!profile.bonus || profile.bonus.balance == null) && cached?.bonus) {
-    profile.bonus = cached.bonus;
-  }
 
   currentProfile = profile;
   saveCachedProfile(profile);
@@ -603,7 +618,11 @@ function renderOrders(orders) {
   }
 
   ordersList.innerHTML = orders.map((order) => `
-    <div class="order-card">
+    <div class="order-card order-card-clickable"
+         role="button"
+         tabindex="0"
+         onclick="openOrderDetail('${escapeJs(String(order.id))}', false)"
+         onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openOrderDetail('${escapeJs(String(order.id))}', false); }">
       <div class="order-top">
         <div class="order-head-left">
           <div class="order-number">Заказ № ${escapeHtml(order.number || order.id)}</div>
@@ -628,7 +647,6 @@ function renderOrders(orders) {
 
       <div class="order-footer">
         <div class="order-price">${escapeHtml(order.paymentLabel || formatMoney(0))}</div>
-        <button class="btn btn-secondary" onclick="openOrderDetail('${escapeJs(String(order.id))}', false)">Подробнее</button>
       </div>
     </div>
   `).join("");
@@ -722,7 +740,7 @@ function renderOrderDetail(order, fromVehicle = false) {
   const positions = (order.positions || []).map((pos) => `
     <div class="position-item">
       <div>
-        <div><strong>${escapeHtml(pos.name || "Позиция")}</strong></div>
+        <div><strong>${escapeHtml(getPositionDisplayName(pos))}</strong></div>
         <div class="small">
           ${pos.isWork ? "Работа" : "Запчасть"} · ${escapeHtml(pos.countLabel || "")} · ${formatMoney(pos.soldPrice || pos.price || 0)}
         </div>
@@ -730,6 +748,18 @@ function renderOrderDetail(order, fromVehicle = false) {
       <div><strong>${formatMoney(pos.lineTotal || 0)}</strong></div>
     </div>
   `).join("");
+
+  const detailTotal =
+    Number(order.soldPrice || 0) ||
+    Number(order.price || 0) ||
+    (Number(order.paid || 0) + Number(order.debt || 0)) ||
+    (Array.isArray(order.positions)
+      ? order.positions.reduce((sum, pos) => sum + Number(pos.lineTotal || 0), 0)
+      : 0);
+
+  const hideTimeline = ["issued", "closed", "done", "completed"].includes(
+    String(order.statusStage || "").toLowerCase()
+  );
 
   orderDetailContent.innerHTML = `
     <div class="detail-grid">
@@ -744,7 +774,7 @@ function renderOrderDetail(order, fromVehicle = false) {
 
       <div class="detail-box">
         <h3>Суммы</h3>
-        <div class="profile-row"><span>Итого:</span><strong>${formatMoney(order.soldPrice || order.price || 0)}</strong></div>
+        <div class="profile-row"><span>Итого:</span><strong>${formatMoney(detailTotal)}</strong></div>
         <div class="profile-row"><span>Оплачено:</span><strong>${formatMoney(order.paid || 0)}</strong></div>
         <div class="profile-row"><span>Долг:</span><strong>${formatMoney(order.debt || 0)}</strong></div>
       </div>
@@ -755,10 +785,11 @@ function renderOrderDetail(order, fromVehicle = false) {
         ${order.comment ? `<div class="small detail-comment">Комментарий: ${escapeHtml(order.comment)}</div>` : ""}
       </div>
 
+      ${hideTimeline ? "" : `
       <div class="detail-box">
         <h3>Этапы</h3>
         <div class="timeline">${timeline || '<div class="small">Нет данных</div>'}</div>
-      </div>
+      </div>`}
 
       <div class="detail-box">
         <h3>Фото</h3>
@@ -866,9 +897,39 @@ function openVehicleDetail(vehicleName) {
 }
 
 async function openOrderDetail(orderId, fromVehicle = false) {
-  try {
-    const data = await api(`/me/orders/${orderId}`);
+  let data;
 
+  try {
+    data = await api(`/me/orders/${orderId}`);
+  } catch (error) {
+    const fallback = (allOrders || []).find((order) => String(order.id) === String(orderId));
+
+    if (fallback) {
+      const fallbackDetail = {
+        ...fallback,
+        positions: Array.isArray(fallback.positions) ? fallback.positions : [],
+        timeline: Array.isArray(fallback.timeline) ? fallback.timeline : [],
+        photos: Array.isArray(fallback.photos) ? fallback.photos : [],
+        paid: Number(fallback.paid || 0),
+        debt: Number(fallback.debt || 0),
+        comment: fallback.comment || "",
+        shortStatus: fallback.shortStatus || fallback.status || "—",
+        createdLabel: fallback.createdLabel || fallback.createdDateLabel || "—",
+        vehicleLabel: fallback.vehicleLabel || fallback.vehicleKey || fallback.deviceLabel || "—",
+        summary: fallback.summary || fallback.problemText || "Описание временно недоступно",
+      };
+
+      renderOrderDetail(fallbackDetail, fromVehicle);
+      return;
+    }
+
+    alert(error.message || "Не удалось открыть заказ");
+    return;
+  }
+
+  renderOrderDetail(data, fromVehicle);
+
+  try {
     const detailVin = data.vin || data.vehicleVin || "";
 
     if (detailVin) {
@@ -914,31 +975,8 @@ async function openOrderDetail(orderId, fromVehicle = false) {
         filterOrders();
       }
     }
-
-    renderOrderDetail(data, fromVehicle);
-  } catch (error) {
-    const fallback = (allOrders || []).find((order) => String(order.id) === String(orderId));
-
-    if (fallback) {
-      const fallbackDetail = {
-        ...fallback,
-        positions: Array.isArray(fallback.positions) ? fallback.positions : [],
-        timeline: Array.isArray(fallback.timeline) ? fallback.timeline : [],
-        photos: Array.isArray(fallback.photos) ? fallback.photos : [],
-        paid: Number(fallback.paid || 0),
-        debt: Number(fallback.debt || 0),
-        comment: fallback.comment || "",
-        shortStatus: fallback.shortStatus || fallback.status || "—",
-        createdLabel: fallback.createdLabel || fallback.createdDateLabel || "—",
-        vehicleLabel: fallback.vehicleLabel || fallback.vehicleKey || fallback.deviceLabel || "—",
-        summary: fallback.summary || fallback.problemText || "Описание временно недоступно",
-      };
-
-      renderOrderDetail(fallbackDetail, fromVehicle);
-      return;
-    }
-
-    alert(error.message || "Не удалось открыть заказ");
+  } catch (syncError) {
+    console.error("openOrderDetail post-sync failed:", syncError);
   }
 }
 
@@ -1242,59 +1280,6 @@ window.openImageViewer = openImageViewer;
 
 initTheme();
 ensureServiceButtons();
+initMobileProfileMore();
 initMobileCabinetTabs();
 checkSession();
-
-
-
-/* === HOTFIX UI FINAL === */
-(function () {
-  function syncProfileUiHotfix() {
-    const btn = document.getElementById("profileMoreBtn");
-    const block = document.getElementById("profileDetailsBlock");
-
-    if (typeof setMobileCabinetSection === "function") {
-      setMobileCabinetSection("profile");
-    }
-
-    if (!btn || !block) return;
-
-    const isMobile = window.innerWidth <= 700;
-
-    if (isMobile) {
-      btn.classList.remove("hidden");
-      if (!block.dataset.mobileInitDone) {
-        block.classList.add("hidden-mobile-details");
-        block.dataset.mobileInitDone = "1";
-      }
-      btn.textContent = block.classList.contains("hidden-mobile-details") ? "Подробнее" : "Скрыть";
-    } else {
-      btn.classList.add("hidden");
-      block.classList.remove("hidden-mobile-details");
-      btn.textContent = "Подробнее";
-    }
-  }
-
-  function bindProfileUiHotfix() {
-    const btn = document.getElementById("profileMoreBtn");
-    const block = document.getElementById("profileDetailsBlock");
-
-    if (btn && block && !btn.dataset.hotfixBound) {
-      btn.dataset.hotfixBound = "1";
-      btn.addEventListener("click", function () {
-        block.classList.toggle("hidden-mobile-details");
-        btn.textContent = block.classList.contains("hidden-mobile-details") ? "Подробнее" : "Скрыть";
-      });
-    }
-
-    syncProfileUiHotfix();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindProfileUiHotfix);
-  } else {
-    bindProfileUiHotfix();
-  }
-
-  window.addEventListener("resize", syncProfileUiHotfix);
-})();

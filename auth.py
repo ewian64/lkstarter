@@ -1,5 +1,6 @@
 import secrets
 from flask import Blueprint, jsonify, request, session
+from werkzeug.security import check_password_hash
 
 from bonus import apply_birthday_bonus_if_needed, apply_first_login_bonus
 from config import Config
@@ -38,6 +39,9 @@ def send_code():
     if len(phone) < 11:
         return jsonify({"error": "Введите корректный номер телефона"}), 400
 
+    if phone in Config.ADMIN_PHONES:
+        return jsonify({"ok": True, "admin_candidate": True, "test_mode": True})
+
     if Config.TEST_LOGIN_ENABLED:
         return jsonify({"ok": True, "test_mode": True})
 
@@ -57,6 +61,20 @@ def verify_code():
     data = request.get_json(silent=True) or {}
     phone = normalize_phone(data.get("phone"))
     code = str(data.get("code", "")).strip()
+
+    if phone in Config.ADMIN_PHONES:
+        if not Config.ADMIN_PASSWORD_HASH:
+            return jsonify({"error": "Админ-вход не настроен"}), 500
+
+        if check_password_hash(Config.ADMIN_PASSWORD_HASH, code):
+            session.clear()
+            session["is_admin"] = True
+            session["admin_phone"] = phone
+            return jsonify({
+                "ok": True,
+                "admin": True,
+                "phone": phone,
+            })
 
     if not (Config.TEST_LOGIN_ENABLED and code == "0000"):
         row = get_active_sms_code(phone, code)
@@ -88,6 +106,8 @@ def verify_code():
     session_token = secrets.token_urlsafe(32)
     create_session(user["id"], session_token, Config.SESSION_DAYS)
     session["session_token"] = session_token
+    session.pop("is_admin", None)
+    session.pop("admin_phone", None)
 
     apply_first_login_bonus(user["id"])
     user = get_user_by_id(user["id"])

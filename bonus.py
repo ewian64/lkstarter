@@ -17,6 +17,9 @@ from models import (
     set_birthday_bonus_year,
     has_order_bonus_accrual,
     create_order_bonus_accrual,
+    list_order_bonus_accruals,
+    get_order_cashback_operations_total,
+    reset_order_cashback_state,
     increase_total_spent,
     list_bonus_operations,
 )
@@ -38,7 +41,7 @@ def parse_program_start_date():
     try:
         return datetime.strptime(Config.BONUS_PROGRAM_START_DATE, "%Y-%m-%d").date()
     except Exception:
-        return date(2026, 3, 19)
+        return date(2026, 3, 15)
 
 
 def get_cashback_percent(total_spent: float) -> float:
@@ -66,10 +69,38 @@ def get_next_tier(total_spent: float):
 
 
 def get_order_total(order: dict) -> float:
+    sold_price = float(order.get("soldPrice") or 0)
+    price = float(order.get("price") or 0)
+
+    if sold_price > 0:
+        return round(sold_price, 2)
+
+    if price > 0:
+        return round(price, 2)
+
     summ = order.get("summ") or {}
     sold_price = float(summ.get("soldPrice") or 0)
     price = float(summ.get("price") or 0)
-    return sold_price if sold_price > 0 else price
+
+    if sold_price > 0:
+        return round(sold_price, 2)
+
+    if price > 0:
+        return round(price, 2)
+
+    positions = order.get("positions") or []
+    if isinstance(positions, list) and positions:
+        line_total = round(sum(float((p or {}).get("lineTotal") or 0) for p in positions), 2)
+        if line_total > 0:
+            return line_total
+
+    paid = float(order.get("paid") or 0)
+    debt = float(order.get("debt") or 0)
+    total_by_payment = round(paid + debt, 2)
+    if total_by_payment > 0:
+        return total_by_payment
+
+    return 0.0
 
 
 def is_cancelled_order(order: dict) -> bool:
@@ -148,15 +179,52 @@ def apply_birthday_bonus_if_needed(user: dict):
     return True
 
 
-def sync_order_cashback(user: dict):
+def sync_order_cashback(user: dict, raw_orders=None):
     counteragent_id = (user or {}).get("livesklad_counteragent_id")
     if not counteragent_id:
         return 0.0
 
-    raw_orders = fetch_orders_by_counteragent_id(counteragent_id) or []
+    if raw_orders is None:
+        try:
+            raw_orders = fetch_orders_by_counteragent_id(counteragent_id) or []
+        except Exception as e:
+            print(f"[BONUS SYNC] counteragent={counteragent_id} skipped due to: {e}")
+            return 0.0
 
-    eligible_orders = [o for o in raw_orders if is_bonus_eligible_order(o)]
+    eligible_orders = [o for o in (raw_orders or []) if is_bonus_eligible_order(o)]
     eligible_orders.sort(key=lambda item: item.get("dateCreate") or "")
+
+    current_orders = {}
+    for order in eligible_orders:
+        order_id = str(order.get("id") or "").strip()
+        if not order_id:
+            continue
+        current_orders[order_id] = round(get_order_total(order), 2)
+
+    existing_accruals = {
+        str(item.get("order_id") or ""): item
+        for item in list_order_bonus_accruals(user["id"])
+    }
+
+    needs_rebuild = len(current_orders) != len(existing_accruals)
+
+    if not needs_rebuild:
+        for order_id, current_total in current_orders.items():
+            existing = existing_accruals.get(order_id)
+            if not existing:
+                needs_rebuild = True
+                break
+
+            existing_total = round(float(existing.get("order_total") or 0), 2)
+            if existing_total != current_total:
+                needs_rebuild = True
+                break
+
+    if not needs_rebuild:
+        return 0.0
+
+    previous_cashback_total = get_order_cashback_operations_total(user["id"])
+    reset_order_cashback_state(user["id"])
 
     accrued_total = 0.0
 
@@ -165,14 +233,11 @@ def sync_order_cashback(user: dict):
         if not order_id:
             continue
 
-        if has_order_bonus_accrual(user["id"], order_id):
-            continue
-
         account = get_bonus_account(user["id"])
         current_total_spent = float(account.get("total_spent") or 0)
         percent = get_cashback_percent(current_total_spent)
 
-        order_total = get_order_total(order)
+        order_total = round(get_order_total(order), 2)
         bonus_amount = round(order_total * percent, 2)
 
         create_order_bonus_accrual(
@@ -191,12 +256,12 @@ def sync_order_cashback(user: dict):
                 user_id=user["id"],
                 amount=bonus_amount,
                 operation_type="order_cashback",
-                comment=f"Кэшбэк {int(percent * 100)}% за заказ {order.get('number') or order_id}",
+                comment="Кэшбэк {}% за заказ {}".format(int(percent * 100), order.get("number") or order_id),
                 order_id=order_id
             )
             accrued_total += bonus_amount
 
-    return accrued_total
+    return round(accrued_total - previous_cashback_total, 2)
 
 
 def build_bonus_payload(user_id: int):
@@ -268,52 +333,41 @@ def my_bonus():
     if not session_token:
         return jsonify({"error": "Не авторизован"}), 401
 
-    current = get_session(session_token)
-    if not current:
-        return jsonify({"error": "Сессия недействительна"}), 401
+    auth_session = get_session(session_token)
+    if not auth_session:
+        return jsonify({"error": "Сессия не найдена"}), 401
 
-    apply_birthday_bonus_if_needed(current)
+    user = find_user_by_phone(auth_session["phone"])
+    if not user:
+        return jsonify({"error": "Пользователь не найден"}), 404
 
-    return jsonify(build_bonus_payload(current["user_id"]))
+    ensure_bonus_account(user["id"])
+    payload = build_bonus_payload(user["id"])
+    operations = [format_bonus_operation(item) for item in list_bonus_operations(user["id"], limit=30)]
 
+    return jsonify({
+        "ok": True,
+        "bonus": payload,
+        "operations": operations,
+    })
 
 @bonus_bp.route("/history", methods=["GET"])
-def my_bonus_history():
+def bonus_history():
     session_token = session.get("session_token")
     if not session_token:
         return jsonify({"error": "Не авторизован"}), 401
 
-    current = get_session(session_token)
-    if not current:
-        return jsonify({"error": "Сессия недействительна"}), 401
+    auth_session = get_session(session_token)
+    if not auth_session:
+        return jsonify({"error": "Сессия не найдена"}), 401
 
-    apply_birthday_bonus_if_needed(current)
-
-    operations = list_bonus_operations(current["user_id"], limit=30)
-    return jsonify({
-        "count": len(operations),
-        "operations": [format_bonus_operation(item) for item in operations]
-    })
-
-
-@bonus_bp.route("/admin/set", methods=["POST"])
-def admin_set_bonus():
-    admin_token = request.headers.get("X-Admin-Token", "")
-    if admin_token != Config.ADMIN_TOKEN:
-        return jsonify({"error": "Нет доступа"}), 403
-
-    data = request.get_json(silent=True) or {}
-    phone = str(data.get("phone", "")).strip()
-    amount = float(data.get("amount", 0))
-    comment = str(data.get("comment", "")).strip()
-
-    user = find_user_by_phone(phone)
+    user = find_user_by_phone(auth_session["phone"])
     if not user:
         return jsonify({"error": "Пользователь не найден"}), 404
 
-    set_bonus_balance(user["id"], amount, comment)
+    operations = [format_bonus_operation(item) for item in list_bonus_operations(user["id"], limit=30)]
 
     return jsonify({
         "ok": True,
-        "balance": get_bonus_balance(user["id"])
+        "operations": operations,
     })
