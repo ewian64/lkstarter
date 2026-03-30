@@ -504,8 +504,14 @@ h3 {
 
 .order-summary {
   color: var(--text);
-  margin: 10px 0 14px;
-  line-height: 1.5;
+  margin: 12px 0 14px;
+  line-height: 1.55;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(91, 124, 255, 0.10);
+  border: 1px solid rgba(91, 124, 255, 0.22);
 }
 
 .order-preview-photos {
@@ -1465,4 +1471,1663 @@ body:not(.dark) .action-link {
     overflow-wrap: anywhere !important;
     border-radius: 20px !important;
   }
+}
+
+/* === LOGIN UI 2026-03-26 === */
+
+.topbar-branding {
+  min-height: 76px;
+}
+
+.brand-full {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  padding: 6px;
+  flex-shrink: 0;
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.brand-title {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.brand-subtitle {
+  font-size: 14px;
+  color: rgba(255,255,255,0.78);
+  margin-top: 4px;
+}
+
+.login-layout {
+  max-width: 1320px;
+}
+
+.login-page {
+  position: relative;
+}
+
+.login-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 26px;
+  background:
+    linear-gradient(135deg, rgba(10, 17, 30, 0.96), rgba(17, 33, 58, 0.92)),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.22), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(245, 158, 11, 0.16), transparent 30%);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.login-hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(4, 10, 20, 0.78), rgba(6, 12, 24, 0.58)),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.10), transparent 28%),
+    url("/static/garage-lines-bg.png");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  opacity: 0.34;
+  pointer-events: none;
+}
+
+.login-hero-grid,
+.login-bottom-grid {
+  position: relative;
+  z-index: 1;
+}
+
+.login-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 460px);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.login-hero-copy {
+  color: #f8fbff;
+  padding: 6px 4px 6px 2px;
+}
+
+.login-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.92);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.login-title {
+  margin: 0 0 14px;
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.login-description {
+  margin: 0;
+  max-width: 760px;
+  font-size: 17px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.84);
+}
+
+.login-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.login-benefit-card {
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(4px);
+}
+
+.login-benefit-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+.login-benefit-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.78);
+}
+
+.login-panel-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.login-panel {
+  width: 100%;
+  margin: 0;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+}
+
+body.dark .login-panel {
+  background: rgba(16, 24, 39, 0.92);
+  border-color: rgba(121,166,255,0.18);
+}
+
+.login-panel-head {
+  margin-bottom: 8px;
+}
+
+.login-panel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.phone-input-wrap {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 52px;
+  border: 1px solid var(--border);
+  background: var(--card-soft);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.phone-input-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.phone-prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  min-width: 62px;
+  height: 100%;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text);
+  background: rgba(49, 94, 251, 0.08);
+  border-right: 1px solid var(--border);
+}
+
+.phone-input {
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+.login-main-btn {
+  min-height: 50px;
+  font-size: 16px;
+}
+
+.login-service-note {
+  margin: 2px 0 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(49,94,251,0.08);
+  border: 1px solid rgba(49,94,251,0.14);
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.login-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.promo-card {
+  min-height: 100%;
+  border-radius: 22px;
+}
+
+.promo-icon {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: rgba(49,94,251,0.10);
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.reveal-fade-up,
+.reveal-scale {
+  animation-duration: 0.55s;
+  animation-timing-function: ease;
+  animation-fill-mode: both;
+}
+
+.reveal-fade-up {
+  animation-name: revealFadeUp;
+}
+
+.reveal-scale {
+  animation-name: revealScaleIn;
+}
+
+.delay-1 {
+  animation-delay: 0.08s;
+}
+
+.delay-2 {
+  animation-delay: 0.16s;
+}
+
+@keyframes revealFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealScaleIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-fade-up,
+  .reveal-scale,
+  .btn,
+  body {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .login-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-panel-wrap {
+    display: block;
+  }
+
+  .login-benefits {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .topbar-branding {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    height: auto;
+  }
+
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .brand-title {
+    font-size: 15px;
+  }
+
+  .brand-subtitle {
+    font-size: 12px;
+  }
+
+  .login-hero {
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .login-hero-bg {
+    background-position: center center;
+    background-size: cover;
+    opacity: 0.28;
+  }
+
+  .login-title {
+    font-size: 28px;
+  }
+
+  .login-description {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .login-panel {
+    border-radius: 20px;
+  }
+
+  .phone-input-wrap {
+    height: 50px;
+  }
+
+  .phone-prefix {
+    width: 58px;
+    min-width: 58px;
+    font-size: 16px;
+  }
+
+  .login-bottom-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+/* === LOGIN POLISH 2026-03-26 === */
+
+.topbar-branding {
+  background:
+    linear-gradient(90deg, rgba(6, 12, 24, 0.96), rgba(17, 24, 39, 0.92)),
+    radial-gradient(circle at left center, rgba(249, 115, 22, 0.16), transparent 22%);
+}
+
+.brand-logo {
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255,255,255,0.10),
+    0 0 30px rgba(249, 115, 22, 0.12);
+}
+
+.login-hero {
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    linear-gradient(135deg, rgba(7, 13, 24, 0.98), rgba(19, 32, 54, 0.94)),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.24), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(249, 115, 22, 0.18), transparent 28%);
+}
+
+.login-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,0.02) 0,
+      rgba(255,255,255,0.02) 1px,
+      transparent 1px,
+      transparent 80px
+    );
+  pointer-events: none;
+}
+
+.login-kicker {
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+}
+
+.login-title {
+  text-shadow: 0 8px 28px rgba(0,0,0,0.22);
+}
+
+.login-panel {
+  position: relative;
+}
+
+.login-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(249,115,22,0.32), rgba(59,130,246,0.18), rgba(255,255,255,0.22));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+.login-panel-head h1,
+.login-panel-head h2 {
+  margin-bottom: 10px;
+}
+
+.login-panel-head p {
+  line-height: 1.55;
+}
+
+.phone-input-wrap {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+}
+
+.phone-prefix {
+  letter-spacing: 0.02em;
+}
+
+.login-main-btn {
+  box-shadow: 0 16px 32px rgba(49, 94, 251, 0.24);
+}
+
+.login-main-btn:hover {
+  box-shadow: 0 18px 36px rgba(49, 94, 251, 0.28);
+}
+
+.promo-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, var(--card) 0%, var(--card) 100%),
+    radial-gradient(circle at top right, rgba(49,94,251,0.10), transparent 28%);
+}
+
+.promo-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(49,94,251,0.05), rgba(249,115,22,0.05));
+  opacity: 1;
+  pointer-events: none;
+}
+
+.promo-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.promo-card h3 {
+  margin-bottom: 10px;
+}
+
+.promo-card .muted {
+  line-height: 1.6;
+}
+
+.promo-icon {
+  box-shadow: 0 12px 24px rgba(49,94,251,0.12);
+}
+
+@media (min-width: 701px) {
+  .promo-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  .promo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.10);
+    border-color: rgba(59,130,246,0.18);
+  }
+}
+
+@media (max-width: 900px) {
+  .login-hero {
+    padding: 18px;
+  }
+
+  .login-title {
+    font-size: 30px;
+  }
+
+  .login-benefit-card {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 700px) {
+  .topbar-actions {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .topbar-actions .btn {
+    height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .login-kicker {
+    font-size: 12px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+  }
+
+  .login-title {
+    font-size: 26px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .login-description {
+    font-size: 14px;
+  }
+
+  .login-benefits {
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .login-benefit-title {
+    font-size: 14px;
+  }
+
+  .login-benefit-text {
+    font-size: 13px;
+  }
+
+  .login-panel {
+    padding: 18px;
+  }
+
+  .login-panel-badge {
+    font-size: 12px;
+    padding: 7px 11px;
+  }
+
+  .login-service-note {
+    font-size: 13px;
+    padding: 12px 14px;
+  }
+
+  .promo-card {
+    padding: 18px;
+    border-radius: 18px;
+  }
+}
+
+/* === LOGIN MOBILE UX FIX 2026-03-26 === */
+
+body.login-bg,
+.login-page {
+  background:
+    linear-gradient(135deg, rgba(3, 8, 18, 0.90), rgba(7, 14, 28, 0.82)),
+    url("/static/garage-lines-bg.png");
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+.login-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 24%),
+    radial-gradient(circle at bottom left, rgba(249,115,22,0.10), transparent 24%);
+  z-index: 0;
+}
+
+.login-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.login-hero {
+  background: rgba(8, 15, 28, 0.64);
+  backdrop-filter: blur(6px);
+}
+
+.login-hero-bg {
+  opacity: 0.18;
+}
+
+@media (max-width: 700px) {
+  .container.login-layout {
+    padding-top: 10px;
+  }
+
+  .login-hero {
+    padding: 14px;
+    border-radius: 20px;
+    background: rgba(7, 13, 24, 0.54);
+  }
+
+  .login-hero-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .login-panel-wrap {
+    order: 1;
+  }
+
+  .login-hero-copy {
+    order: 2;
+  }
+
+  .login-panel {
+    margin-top: 0;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.24);
+  }
+
+  .login-panel-head h1,
+  .login-panel-head h2 {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .login-title {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+
+  .login-description {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .login-benefits {
+    display: none;
+  }
+
+  .login-kicker {
+    margin-bottom: 10px;
+  }
+
+  .login-bottom-grid {
+    margin-top: 14px;
+  }
+
+  .promo-card h3 {
+    font-size: 18px;
+  }
+}
+
+/* === MOBILE HEADER COMPACT 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .topbar-branding {
+    min-height: 64px;
+    padding: 10px 12px !important;
+  }
+
+  .brand-full {
+    gap: 10px;
+    align-items: center;
+  }
+
+  .brand-logo {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 4px !important;
+    border-radius: 10px !important;
+  }
+
+  .brand-title {
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+  }
+
+  .brand-subtitle {
+    font-size: 11px !important;
+    margin-top: 2px !important;
+  }
+
+  .topbar-actions .btn {
+    height: 36px !important;
+    padding: 0 11px !important;
+    font-size: 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .container.login-layout {
+    padding: 8px 10px 20px !important;
+  }
+
+  .login-hero {
+    padding: 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .login-kicker {
+    font-size: 11px !important;
+    padding: 7px 10px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .login-title {
+    font-size: 18px !important;
+    line-height: 1.12 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .login-description {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .login-panel {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .login-panel-head {
+    margin-bottom: 6px !important;
+  }
+
+  .login-panel-head h1,
+  .login-panel-head h2 {
+    font-size: 16px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .login-panel-head .muted {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+
+  .label {
+    margin: 14px 0 6px !important;
+  }
+
+  .phone-input-wrap {
+    height: 48px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .phone-prefix {
+    width: 54px !important;
+    min-width: 54px !important;
+    font-size: 15px !important;
+  }
+
+  .login-main-btn {
+    min-height: 46px !important;
+    font-size: 15px !important;
+  }
+
+  .login-service-note {
+    display: none !important;
+  }
+}
+
+/* === CABINET MODE HIDE HERO 2026-03-26 === */
+
+body.cabinet-mode .login-hero {
+  display: none !important;
+}
+
+body.cabinet-mode .container.login-layout {
+  max-width: 1240px;
+}
+
+/* === CABINET MODE FORCE HIDE 2026-03-26 === */
+
+body.cabinet-mode .login-hero,
+body.cabinet-mode .login-bottom-grid,
+body.cabinet-mode .login-hero-copy,
+body.cabinet-mode .login-benefits,
+body.cabinet-mode .login-kicker,
+body.cabinet-mode .login-title,
+body.cabinet-mode .login-description,
+body.cabinet-mode .promo-card {
+  display: none !important;
+}
+
+body.cabinet-mode #loginScreen,
+body.cabinet-mode #codeScreen,
+body.cabinet-mode #profileSetupScreen {
+  display: none !important;
+}
+
+body.cabinet-mode #cabinetScreen {
+  display: block !important;
+}
+
+@media (max-width: 700px) {
+  body.cabinet-mode .container.login-layout {
+    padding-top: 8px !important;
+  }
+}
+
+
+/* === CABINET LANDING HIDE 2026-03-26 === */
+
+body.cabinet-mode .login-hero,
+body.cabinet-mode .login-bottom-grid {
+  display: none !important;
+}
+
+body.cabinet-mode .container.login-layout {
+  max-width: 1240px;
+}
+
+@media (max-width: 700px) {
+  body.cabinet-mode .container.login-layout {
+    padding-top: 8px !important;
+  }
+}
+
+
+/* === LOGIN MOBILE SIMPLIFY 2026-03-26 === */
+
+.login-mobile-shortcuts,
+.login-mobile-panel {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .login-hero-grid {
+    gap: 10px !important;
+  }
+
+  .login-panel-wrap {
+    order: 1 !important;
+  }
+
+  .login-hero-copy {
+    order: 2 !important;
+  }
+
+  .login-benefits,
+  .login-bottom-grid {
+    display: none !important;
+  }
+
+  .login-mobile-shortcuts {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .login-shortcut-btn {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .login-mobile-panel {
+    display: block;
+    margin-top: 10px;
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .login-title {
+    font-size: 16px !important;
+    line-height: 1.15 !important;
+  }
+
+  .login-description {
+    font-size: 13px !important;
+    line-height: 1.42 !important;
+  }
+
+  .login-hero-copy {
+    padding-top: 4px !important;
+  }
+
+  .promo-card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .promo-card .muted {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+}
+
+/* === HEADER TITLE ALIGN 2026-03-26 === */
+
+.brand-full {
+  align-items: center !important;
+}
+
+.brand-copy {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 100% !important;
+}
+
+.brand-subtitle {
+  display: none !important;
+}
+
+.brand-title {
+  margin: 0 !important;
+}
+
+/* === MOBILE HEADER FINAL TIGHTEN 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .topbar-branding {
+    min-height: 56px !important;
+    padding: 8px 10px !important;
+  }
+
+  .brand-full {
+    gap: 8px !important;
+  }
+
+  .brand-logo {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .brand-title {
+    font-size: 12px !important;
+    line-height: 1.08 !important;
+  }
+
+  .container.login-layout {
+    padding-top: 6px !important;
+  }
+
+  .login-hero {
+    margin-top: 0 !important;
+    padding-top: 10px !important;
+  }
+}
+
+/* === MOBILE HEADER CLEANUP 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .topbar-branding {
+    min-height: 52px !important;
+    padding: 6px 10px !important;
+  }
+
+  .brand-full {
+    gap: 8px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .brand-logo {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 3px !important;
+    border-radius: 8px !important;
+  }
+
+  .brand-copy {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .brand-title {
+    font-size: 11px !important;
+    line-height: 1.1 !important;
+    font-weight: 800 !important;
+    white-space: normal !important;
+  }
+
+  .topbar-actions {
+    width: auto !important;
+    flex: 0 0 auto !important;
+  }
+
+  .topbar-actions .btn {
+    height: 32px !important;
+    padding: 0 10px !important;
+    font-size: 11px !important;
+    border-radius: 10px !important;
+    min-width: 72px !important;
+  }
+}
+
+/* === MOBILE HEADER BALANCE 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .topbar-branding {
+    min-height: 68px !important;
+    padding: 10px 12px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    column-gap: 10px !important;
+  }
+
+  .brand-full {
+    display: grid !important;
+    grid-template-columns: 44px minmax(0, 1fr) !important;
+    align-items: center !important;
+    column-gap: 10px !important;
+    min-width: 0 !important;
+  }
+
+  .brand-logo {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 4px !important;
+    border-radius: 10px !important;
+    justify-self: start !important;
+  }
+
+  .brand-copy {
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+  }
+
+  .brand-title {
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    font-weight: 800 !important;
+    margin: 0 !important;
+    white-space: normal !important;
+  }
+
+  .topbar-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    width: auto !important;
+    margin: 0 !important;
+  }
+
+  .topbar-actions .btn {
+    height: 42px !important;
+    min-width: 88px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+    border-radius: 14px !important;
+    border-color: rgba(255,255,255,0.45) !important;
+    background: rgba(9, 16, 30, 0.42) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* === MOBILE HEADER CENTER LOOK 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .topbar-branding {
+    grid-template-columns: 1fr auto !important;
+    align-items: center !important;
+  }
+
+  .brand-full {
+    display: grid !important;
+    grid-template-columns: 48px 1fr !important;
+    align-items: center !important;
+    column-gap: 12px !important;
+  }
+
+  .brand-logo {
+    width: 42px !important;
+    height: 42px !important;
+    padding: 4px !important;
+    border-radius: 12px !important;
+    background: rgba(255,255,255,0.08) !important;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.10),
+      0 8px 20px rgba(0,0,0,0.22) !important;
+    filter: saturate(1.12) contrast(1.08) brightness(1.06) !important;
+  }
+
+  .brand-copy {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    text-align: center !important;
+  }
+
+  .brand-title {
+    width: 100% !important;
+    text-align: center !important;
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+  }
+
+  .topbar-actions {
+    justify-content: flex-end !important;
+  }
+}
+
+/* === MOBILE LOGIN COMPACT FINAL 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .login-hero {
+    padding: 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .login-hero-grid {
+    gap: 8px !important;
+  }
+
+  .login-panel {
+    padding: 14px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.18) !important;
+  }
+
+  .login-panel-head {
+    margin-bottom: 4px !important;
+  }
+
+  .login-panel-head h1,
+  .login-panel-head h2 {
+    font-size: 15px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .login-panel-head .muted {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .label {
+    margin: 10px 0 5px !important;
+    font-size: 12px !important;
+  }
+
+  .phone-input-wrap {
+    height: 44px !important;
+    margin-bottom: 10px !important;
+    border-radius: 14px !important;
+  }
+
+  .phone-prefix {
+    width: 50px !important;
+    min-width: 50px !important;
+    font-size: 14px !important;
+  }
+
+  .phone-input {
+    font-size: 14px !important;
+  }
+
+  .login-main-btn {
+    min-height: 42px !important;
+    font-size: 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .login-kicker {
+    margin-top: 2px !important;
+    margin-bottom: 8px !important;
+    font-size: 10px !important;
+    padding: 6px 10px !important;
+  }
+
+  .login-title {
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    margin-bottom: 6px !important;
+  }
+
+  .login-description {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .login-mobile-shortcuts {
+    gap: 8px !important;
+    margin-top: 8px !important;
+  }
+
+  .login-shortcut-btn {
+    min-height: 38px !important;
+    font-size: 13px !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* === MOBILE LOGIN CARD WIDTH 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .login-panel-wrap {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .login-panel {
+    width: calc(100% - 14px) !important;
+    max-width: 390px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .login-hero-copy {
+    width: calc(100% - 14px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .login-mobile-shortcuts {
+    width: calc(100% - 14px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* === HERO SOFTER FRAME 2026-03-26 === */
+
+.login-hero {
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12) !important;
+}
+
+.login-hero-bg {
+  opacity: 0.42 !important;
+}
+
+.login-hero::before {
+  opacity: 0.55 !important;
+}
+
+.login-hero::after {
+  opacity: 0.24 !important;
+}
+
+@media (max-width: 700px) {
+  .login-hero {
+    background: rgba(7, 13, 24, 0.42) !important;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10) !important;
+  }
+
+  .login-hero-bg {
+    opacity: 0.36 !important;
+  }
+}
+
+
+/* === LOGIN PROMO SLIDER ONLY 2026-03-26 === */
+
+.login-bottom-grid.promo-slider-wrap {
+  grid-template-columns: 1fr !important;
+}
+
+.promo-slider-card {
+  position: relative;
+}
+
+.promo-slider-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.promo-slider-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.promo-nav-btn {
+  min-width: 42px;
+  height: 42px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.promo-slider-track {
+  position: relative;
+  min-height: 190px;
+}
+
+.promo-slide {
+  display: none;
+}
+
+.promo-slide.active {
+  display: block;
+}
+
+.promo-slide .muted {
+  white-space: pre-line;
+}
+
+
+@media (max-width: 700px) {
+  .login-mobile-shortcuts {
+    grid-template-columns: 1fr !important;
+  }
+
+  .promo-slider-track {
+    min-height: auto;
+  }
+
+  .promo-nav-btn {
+    min-width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+}
+
+/* === MOBILE PROMO SLIDER TOGGLE RESTORE 2026-03-26 === */
+
+@media (max-width: 700px) {
+  .promo-slider-wrap.mobile-promo-hidden {
+    display: none !important;
+  }
+
+  .promo-slider-wrap.mobile-promo-open {
+    display: block !important;
+  }
+}
+
+
+/* === MOBILE PROMO BUTTON WHITE FINAL 2026-03-26 === */
+@media (max-width: 700px) {
+  .login-mobile-shortcuts {
+    position: relative !important;
+    z-index: 2 !important;
+  }
+
+  #loginPromoToggleBtn,
+  #loginPromoToggleBtn:hover,
+  #loginPromoToggleBtn:focus,
+  #loginPromoToggleBtn:active {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #1f2937 !important;
+    border: 1px solid rgba(148, 163, 184, 0.45) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+
+.cabinet-promotions-card {
+  overflow: hidden;
+}
+
+.cabinet-promotions-list {
+  display: grid;
+  gap: 12px;
+}
+
+.cabinet-promo-item {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(91, 124, 255, 0.08);
+  border: 1px solid rgba(91, 124, 255, 0.16);
+}
+
+.cabinet-promo-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.cabinet-promo-text {
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+
+.cabinet-promotions-details {
+  overflow: hidden;
+}
+
+.cabinet-promotions-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.cabinet-promotions-summary::-webkit-details-marker {
+  display: none;
+}
+
+.cabinet-promotions-chevron {
+  flex: 0 0 auto;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.cabinet-promotions-details[open] .cabinet-promotions-chevron {
+  transform: rotate(180deg);
+}
+
+.cabinet-promotions-details .cabinet-promotions-list {
+  margin-top: 14px;
+}
+
+/* 2026-03-31: larger mobile bonus box in profile card */
+@media (max-width: 640px) {
+  .profile-card .profile-mobile-side {
+    width: 156px !important;
+    flex: 0 0 156px !important;
+  }
+
+  .profile-card .profile-inline-bonus {
+    padding: 14px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .profile-card .profile-inline-bonus-label {
+    font-size: 13px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .profile-card .profile-inline-bonus-value {
+    font-size: 34px !important;
+    line-height: 1 !important;
+  }
+}
+
+
+.recommendation-card {
+  overflow: hidden;
+}
+
+.recommendation-text {
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: var(--text);
+  white-space: pre-line;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 154, 0, 0.10);
+  border: 1px solid rgba(255, 154, 0, 0.24);
+}
+
+@media (max-width: 640px) {
+  .recommendation-text {
+    font-size: 14px;
+    padding: 13px 14px;
+  }
+}
+
+
+.order-recommendation-row {
+  margin: 10px 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+.order-recommendation-label {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.order-recommendation-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.detail-recommendation {
+  margin-top: 12px;
+  white-space: pre-line;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .order-recommendation-row {
+    font-size: 13px;
+  }
+}
+
+
+.order-recommendation-row-accent {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(91, 124, 255, 0.08);
+  border: 1px solid rgba(91, 124, 255, 0.16);
+}
+
+.order-recommendation-row-accent .order-recommendation-label {
+  color: var(--text);
+}
+
+.detail-recommendation-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(91, 124, 255, 0.08);
+  border: 1px solid rgba(91, 124, 255, 0.16);
+}
+
+.detail-recommendation-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  margin-bottom: 8px;
+}
+
+.detail-recommendation {
+  white-space: pre-line;
+  line-height: 1.6;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* 2026-03-31: unify left recommendation card color with cabinet theme */
+.recommendation-card .recommendation-text {
+  background: rgba(91, 124, 255, 0.08) !important;
+  border: 1px solid rgba(91, 124, 255, 0.16) !important;
+  color: var(--text) !important;
+}
+
+.recommendation-card .section-head .muted,
+.recommendation-card #lastRecommendationMeta {
+  color: var(--text-soft) !important;
+}
+
+/* 2026-03-31: recommendation text overflow handling */
+.order-card,
+.order-recommendation-row,
+.order-recommendation-row-accent {
+  min-width: 0 !important;
+}
+
+.order-recommendation-row,
+.order-recommendation-row-accent {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+}
+
+.order-recommendation-label {
+  flex: 0 0 auto !important;
+}
+
+.order-recommendation-text {
+  flex: 1 1 auto !important;
+  display: block !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+.recommendation-card,
+.recommendation-card .section-head,
+.recommendation-card .recommendation-text {
+  min-width: 0 !important;
+}
+
+.recommendation-card .recommendation-text {
+  display: block !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+.detail-recommendation-card,
+.detail-recommendation {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.detail-recommendation {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
 }

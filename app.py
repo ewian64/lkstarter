@@ -2,8 +2,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from datetime import datetime, timezone
+from pathlib import Path
 import time
-from flask import Flask, jsonify, render_template, request, session, make_response
+import json
+from flask import Flask, jsonify, redirect, render_template, request, session, make_response
 from flask_cors import CORS
 
 from auth import auth_bp
@@ -32,6 +34,23 @@ from models import (
 
 ADMIN_ORDER_CACHE = {}
 ADMIN_ORDER_CACHE_TTL = 300
+
+
+def load_public_content_blocks():
+    content_path = Path(__file__).resolve().parent / "content_blocks.json"
+    try:
+        data = json.loads(content_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"promotions": [], "notifications": []}
+
+    promotions = [item for item in (data.get("promotions") or []) if item.get("active", True)]
+    notifications = [item for item in (data.get("notifications") or []) if item.get("active", True)]
+
+    return {
+        "promotions": promotions,
+        "notifications": notifications,
+    }
+
 
 
 def get_admin_cached_orders(counteragent_id):
@@ -64,7 +83,12 @@ def create_app():
 
     @app.route("/")
     def home():
-        return render_template("index.html")
+        content = load_public_content_blocks()
+        return render_template(
+            "index.html",
+            promotions=content.get("promotions") or [],
+            notifications=content.get("notifications") or [],
+        )
 
     @app.route("/health")
     def health():
@@ -73,6 +97,97 @@ def create_app():
 
     def require_admin():
         return bool(session.get("is_admin"))
+
+    @app.route("/content/blocks", methods=["GET"])
+    def content_blocks():
+        content_path = Path(app.root_path) / "content_blocks.json"
+
+        try:
+            data = json.loads(content_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return jsonify({"promotions": [], "notifications": []})
+        except Exception as e:
+            return jsonify({"error": f"Не удалось загрузить контент: {e}"}), 500
+
+        promotions = [item for item in (data.get("promotions") or []) if item.get("active", True)]
+        notifications = [item for item in (data.get("notifications") or []) if item.get("active", True)]
+
+        return jsonify({
+            "promotions": promotions,
+            "notifications": notifications,
+        })
+
+
+
+    def read_content_blocks():
+        content_path = Path(app.root_path) / "content_blocks.json"
+        try:
+            return json.loads(content_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return {"promotions": [], "notifications": []}
+
+    def write_content_blocks(data):
+        content_path = Path(app.root_path) / "content_blocks.json"
+        content_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8"
+        )
+
+    @app.route("/admin/promotions", methods=["GET"])
+    def admin_promotions():
+        if not require_admin():
+            return jsonify({"error": "Доступ запрещён"}), 403
+
+        data = read_content_blocks()
+        promotions = data.get("promotions") or []
+        return jsonify({
+            "ok": True,
+            "promotions": promotions
+        })
+
+    @app.route("/admin/promotions", methods=["POST"])
+    def admin_save_promotions():
+        if not require_admin():
+            return jsonify({"error": "Доступ запрещён"}), 403
+
+        data = request.get_json(silent=True) or {}
+        promotions = data.get("promotions")
+
+        if not isinstance(promotions, list):
+            return jsonify({"error": "Некорректный список акций"}), 400
+
+        normalized = []
+        for idx, item in enumerate(promotions, start=1):
+            if not isinstance(item, dict):
+                continue
+
+            title = str(item.get("title") or "").strip()
+            text = str(item.get("text") or "").strip()
+            active = bool(item.get("active", True))
+            promo_id = str(item.get("id") or f"promo-{idx}").strip() or f"promo-{idx}"
+
+            if not title:
+                continue
+
+            normalized.append({
+                "id": promo_id,
+                "title": title,
+                "text": text,
+                "active": active
+            })
+
+        content = read_content_blocks()
+        content["promotions"] = normalized
+        if "notifications" not in content or not isinstance(content.get("notifications"), list):
+            content["notifications"] = []
+
+        write_content_blocks(content)
+
+        return jsonify({
+            "ok": True,
+            "promotions": normalized
+        })
+
 
     @app.route("/admin", methods=["GET"])
     def admin_home():
@@ -85,12 +200,11 @@ def create_app():
         response.headers["Expires"] = "0"
         return response
 
-    @app.route("/admin/logout", methods=["POST"])
+    @app.route("/admin/logout", methods=["GET", "POST"])
     def admin_logout():
         session.pop("is_admin", None)
         session.pop("admin_phone", None)
-        return jsonify({"ok": True})
-
+        return redirect("/")
 
     @app.route("/admin/search", methods=["GET"])
     def admin_search():

@@ -47,6 +47,9 @@ const bonusTotalSpent = document.getElementById("bonusTotalSpent");
 const bonusNextTier = document.getElementById("bonusNextTier");
 const bonusToNextTier = document.getElementById("bonusToNextTier");
 const bonusHistoryList = document.getElementById("bonusHistoryList");
+const lastRecommendationCard = document.getElementById("lastRecommendationCard");
+const lastRecommendationText = document.getElementById("lastRecommendationText");
+const lastRecommendationMeta = document.getElementById("lastRecommendationMeta");
 
 const ordersList = document.getElementById("ordersList");
 const vehiclesList = document.getElementById("vehiclesList");
@@ -71,12 +74,88 @@ const mobileProfileSection = document.getElementById("mobileProfileSection");
 const mobileVehiclesSection = document.getElementById("mobileVehiclesSection");
 const mobileOrdersSection = document.getElementById("mobileOrdersSection");
 
+const loginPromoToggleBtn = document.getElementById("loginPromoToggleBtn");
+
 let currentPhone = "";
 let allOrders = [];
 let allVehicles = [];
 let currentProfile = null;
 let currentVehicleContext = null;
+
 let lastOrderOpenedFromVehicle = false;
+
+function syncLandingVisibility() {
+  const hero = document.querySelector(".login-hero");
+  const isCabinetVisible = cabinetScreen && !cabinetScreen.classList.contains("hidden");
+  if (hero) {
+    hero.classList.toggle("hidden", !!isCabinetVisible);
+  }
+}
+
+
+function setCabinetMode(enabled) {
+  document.body.classList.toggle("cabinet-mode", !!enabled);
+}
+
+
+function getPhoneDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function normalizePhoneInputValue(value) {
+  let digits = getPhoneDigits(value);
+
+  if (digits.startsWith("7")) {
+    digits = digits.slice(1);
+  } else if (digits.startsWith("8")) {
+    digits = digits.slice(1);
+  }
+
+  digits = digits.slice(0, 10);
+
+  const p1 = digits.slice(0, 3);
+  const p2 = digits.slice(3, 6);
+  const p3 = digits.slice(6, 8);
+  const p4 = digits.slice(8, 10);
+
+  let formatted = "";
+  if (p1) formatted += p1;
+  if (p2) formatted += (formatted ? " " : "") + p2;
+  if (p3) formatted += (formatted ? "-" : "") + p3;
+  if (p4) formatted += (formatted ? "-" : "") + p4;
+
+  return {
+    digits,
+    formatted,
+    full: "7" + digits
+  };
+}
+
+function initPhoneInput() {
+  if (!phoneInput) return;
+
+  const apply = (raw) => {
+    const normalized = normalizePhoneInputValue(raw);
+    phoneInput.value = normalized.formatted;
+    return normalized;
+  };
+
+  apply(phoneInput.value);
+
+  phoneInput.addEventListener("input", (e) => {
+    apply(e.target.value);
+  });
+
+  phoneInput.addEventListener("focus", () => {
+    apply(phoneInput.value);
+  });
+
+  phoneInput.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData("text") || "";
+    apply(text);
+  });
+}
 
 
 function setMobileCabinetSection(section) {
@@ -105,6 +184,63 @@ function setMobileCabinetSection(section) {
     if (!el) return;
     el.classList.toggle("active", key === section);
   });
+}
+
+
+function initPromoSlider() {
+  const slides = Array.from(document.querySelectorAll(".promo-slide"));
+  const prevBtn = document.getElementById("promoPrevBtn");
+  const nextBtn = document.getElementById("promoNextBtn");
+
+  if (!slides.length) return;
+
+  let currentIndex = slides.findIndex((slide) => slide.classList.contains("active"));
+  if (currentIndex < 0) currentIndex = 0;
+
+  function renderSlide(index) {
+    slides.forEach((slide, i) => {
+      slide.classList.toggle("active", i === index);
+    });
+  }
+
+  function showPrev() {
+    currentIndex = (currentIndex - 1 + slides.length) % slides.length;
+    renderSlide(currentIndex);
+  }
+
+  function showNext() {
+    currentIndex = (currentIndex + 1) % slides.length;
+    renderSlide(currentIndex);
+  }
+
+  renderSlide(currentIndex);
+
+  if (prevBtn) prevBtn.addEventListener("click", showPrev);
+  if (nextBtn) nextBtn.addEventListener("click", showNext);
+}
+
+function initMobilePromoSliderToggle() {
+  const sliderWrap = document.querySelector(".promo-slider-wrap");
+  if (!loginPromoToggleBtn || !sliderWrap) return;
+
+  function syncMobilePromoState() {
+    if (window.innerWidth <= 700) {
+      sliderWrap.classList.toggle("mobile-promo-hidden", !sliderWrap.classList.contains("mobile-promo-open"));
+    } else {
+      sliderWrap.classList.remove("mobile-promo-hidden");
+      sliderWrap.classList.remove("mobile-promo-open");
+    }
+  }
+
+  loginPromoToggleBtn.addEventListener("click", () => {
+    if (window.innerWidth > 700) return;
+    const willOpen = !sliderWrap.classList.contains("mobile-promo-open");
+    sliderWrap.classList.toggle("mobile-promo-open", willOpen);
+    sliderWrap.classList.toggle("mobile-promo-hidden", !willOpen);
+  });
+
+  syncMobilePromoState();
+  window.addEventListener("resize", syncMobilePromoState);
 }
 
 function initMobileCabinetTabs() {
@@ -168,6 +304,7 @@ function saveCachedProfile(profile) {
 }
 
 function showLogin() {
+  setCabinetMode(false);
   loginScreen.classList.remove("hidden");
   codeScreen.classList.add("hidden");
   profileSetupScreen.classList.add("hidden");
@@ -175,17 +312,21 @@ function showLogin() {
   logoutBtn.classList.add("hidden");
   closeOrderModal(false);
   closeVehicleModal(true);
+  syncLandingVisibility();
 }
 
 function showCode() {
+  setCabinetMode(false);
   loginScreen.classList.add("hidden");
   codeScreen.classList.remove("hidden");
   profileSetupScreen.classList.add("hidden");
   cabinetScreen.classList.add("hidden");
   logoutBtn.classList.add("hidden");
+  syncLandingVisibility();
 }
 
 function showProfileSetup(user = null) {
+  setCabinetMode(false);
   loginScreen.classList.add("hidden");
   codeScreen.classList.add("hidden");
   profileSetupScreen.classList.remove("hidden");
@@ -196,14 +337,17 @@ function showProfileSetup(user = null) {
     setupNameInput.value = user.name || "";
     setupBirthDateInput.value = user.birth_date || "";
   }
+  syncLandingVisibility();
 }
 
 function showCabinet() {
+  setCabinetMode(true);
   loginScreen.classList.add("hidden");
   codeScreen.classList.add("hidden");
   profileSetupScreen.classList.add("hidden");
   cabinetScreen.classList.remove("hidden");
   logoutBtn.classList.remove("hidden");
+  syncLandingVisibility();
 }
 
 function setMessage(el, text, isError = false) {
@@ -368,7 +512,7 @@ function applyStaticLinks() {
 }
 
 async function sendCode() {
-  const phone = phoneInput.value.trim();
+  const phone = normalizePhoneInputValue(phoneInput.value).full;
   currentPhone = phone;
 
   setMessage(loginMessage, "Отправка кода...");
@@ -476,6 +620,72 @@ function renderBonusHistory(operations) {
       <div class="bonus-history-amount ${item.direction === "negative" ? "bonus-negative" : "bonus-positive"}">${escapeHtml(item.amount_label || "0 ₽")}</div>
     </div>
   `).join("");
+}
+
+
+function renderLastRecommendation(detail, sourceOrder = null) {
+  if (!lastRecommendationCard || !lastRecommendationText || !lastRecommendationMeta) return;
+
+  const text = String(detail?.recommendationText || detail?.recommendation || "").trim();
+
+  if (!text) {
+    lastRecommendationCard.classList.add("hidden");
+    lastRecommendationText.textContent = "";
+    lastRecommendationMeta.textContent = "Что советуем сделать дальше";
+    return;
+  }
+
+  const orderId = String(detail?.id || sourceOrder?.id || "").trim();
+  const orderNumber = detail?.number || sourceOrder?.number || sourceOrder?.id || "—";
+  const orderDate = detail?.createdLabel || sourceOrder?.createdLabel || sourceOrder?.createdDateLabel || "—";
+  const vehicleLabel = detail?.vehicleLabel || sourceOrder?.vehicleLabel || sourceOrder?.deviceLabel || "—";
+
+  if (orderId && Array.isArray(allOrders)) {
+    allOrders = allOrders.map((order) => {
+      if (String(order?.id || "") !== orderId) return order;
+      return {
+        ...order,
+        recommendationText: text,
+        recommendation: text,
+      };
+    });
+  }
+
+  lastRecommendationMeta.textContent = `Заказ № ${orderNumber} · ${orderDate} · ${vehicleLabel}`;
+  lastRecommendationText.textContent = text;
+  lastRecommendationCard.classList.remove("hidden");
+
+  if (typeof renderOrders === "function" && Array.isArray(allOrders)) {
+    const selectedVehicle = vehicleFilter?.value || "";
+    const ordersToRender = selectedVehicle
+      ? allOrders.filter((order) => String(order.vehicleKey || "") === selectedVehicle)
+      : allOrders;
+    renderOrders(ordersToRender);
+  }
+}
+
+async function loadLatestRecommendation() {
+  if (!lastRecommendationCard || !lastRecommendationText || !lastRecommendationMeta) return;
+
+  lastRecommendationCard.classList.add("hidden");
+  lastRecommendationText.textContent = "";
+  lastRecommendationMeta.textContent = "Что советуем сделать дальше";
+
+  const sortedOrders = [...(allOrders || [])]
+    .filter((order) => order && order.id)
+    .sort((a, b) => String(b.dateCreate || "").localeCompare(String(a.dateCreate || "")));
+
+  if (!sortedOrders.length) return;
+
+  const latestOrder = sortedOrders[0];
+
+  try {
+    const detail = await api(`/me/orders/${latestOrder.id}`);
+    renderLastRecommendation(detail, latestOrder);
+  } catch (error) {
+    console.error("loadLatestRecommendation failed:", error);
+    lastRecommendationCard.classList.add("hidden");
+  }
 }
 
 function renderCustomerSummary(profile) {
@@ -611,6 +821,25 @@ function renderOrderPhotoPreview(order) {
   `;
 }
 
+function getRecommendationPreview(order) {
+  const direct = String(order?.recommendationText || order?.recommendation || "").trim();
+  if (direct) return direct;
+
+  const meta = document.getElementById("lastRecommendationMeta");
+  const text = document.getElementById("lastRecommendationText");
+  if (!meta || !text) return "";
+
+  const metaText = String(meta.textContent || "");
+  const number = String(order?.number || "").trim();
+  if (!number) return "";
+
+  if (metaText.includes(`Заказ № ${number}`)) {
+    return String(text.textContent || "").trim();
+  }
+
+  return "";
+}
+
 function renderOrders(orders) {
   if (!orders.length) {
     ordersList.innerHTML = `<div class="muted">Заказов пока нет</div>`;
@@ -642,6 +871,14 @@ function renderOrders(orders) {
       <div class="order-meta"><strong>Автомобиль:</strong> ${escapeHtml(order.deviceLabel || order.vehicleLabel || "—")}</div>
       <div class="order-meta"><strong>VIN / SN:</strong> ${escapeHtml(order.vin || order.vehicleVin || "—")}</div>
       <div class="order-summary">${escapeHtml(order.summary || "Описание отсутствует")}</div>
+      ${(() => {
+        const recommendation = getRecommendationPreview(order);
+        if (!recommendation) return "";
+        return `<div class="order-recommendation-row order-recommendation-row-accent">
+        <span class="order-recommendation-label">Рекомендации:</span>
+        <span class="order-recommendation-text" title="${escapeAttribute(recommendation)}">${escapeHtml(recommendation)}</span>
+      </div>`;
+      })()}
 
       ${renderOrderPhotoPreview(order)}
 
@@ -782,6 +1019,10 @@ function renderOrderDetail(order, fromVehicle = false) {
       <div class="detail-box">
         <h3>Описание</h3>
         <div>${escapeHtml(order.summary || "—")}</div>
+        <div class="detail-recommendation-card">
+          <div class="detail-recommendation-title">Рекомендации</div>
+          <div class="detail-recommendation">${escapeHtml(order.recommendationText || order.recommendation || "—")}</div>
+        </div>
         ${order.comment ? `<div class="small detail-comment">Комментарий: ${escapeHtml(order.comment)}</div>` : ""}
       </div>
 
@@ -1044,6 +1285,8 @@ async function loadCabinet() {
     loadOrders(),
     loadBonusHistory()
   ]);
+
+  await loadLatestRecommendation();
 }
 
 async function checkSession() {
@@ -1127,7 +1370,10 @@ verifyCodeBtn.addEventListener("click", verifyCode);
 backToPhoneBtn.addEventListener("click", showLogin);
 saveProfileBtn.addEventListener("click", saveProfile);
 logoutBtn.addEventListener("click", logout);
-refreshOrdersBtn.addEventListener("click", loadOrders);
+refreshOrdersBtn.addEventListener("click", async () => {
+  await loadOrders();
+  await loadLatestRecommendation();
+});
 closeDetailBtn.addEventListener("click", () => closeOrderModal(true));
 closeVehicleBtn.addEventListener("click", () => closeVehicleModal(true));
 backToVehicleBtn.addEventListener("click", backToVehicleCard);
@@ -1279,7 +1525,136 @@ function closeImageViewer() {
 window.openImageViewer = openImageViewer;
 
 initTheme();
+initPhoneInput();
 ensureServiceButtons();
 initMobileProfileMore();
 initMobileCabinetTabs();
+initPromoSlider();
+initMobilePromoSliderToggle();
+syncLandingVisibility();
 checkSession();
+
+/* 2026-03-31: refresh order previews after latest recommendation loads */
+(() => {
+  if (typeof renderLastRecommendation !== "function" || typeof renderOrders !== "function") return;
+  const originalRenderLastRecommendation = renderLastRecommendation;
+
+  renderLastRecommendation = function(detail, sourceOrder = null) {
+    const result = originalRenderLastRecommendation(detail, sourceOrder);
+
+    try {
+      if (!Array.isArray(allOrders) || !ordersList) return result;
+
+      const visibleIds = new Set(
+        Array.from(ordersList.querySelectorAll("[data-order-id]"))
+          .map((el) => String(el.dataset.orderId || "").trim())
+          .filter(Boolean)
+      );
+
+      const ordersToRender = visibleIds.size
+        ? allOrders.filter((order) => visibleIds.has(String(order.id)))
+        : allOrders;
+
+      renderOrders(ordersToRender);
+    } catch (error) {
+      console.error("recommendation preview refresh failed:", error);
+    }
+
+    return result;
+  };
+})();
+
+/* 2026-03-31: keep recommendation visible in order previews after page refresh */
+(() => {
+  function rerenderOrdersWithCurrentFilter() {
+    try {
+      if (!Array.isArray(window.allOrders)) return;
+      if (typeof window.filterOrders === "function") {
+        window.filterOrders();
+        return;
+      }
+      if (typeof window.renderOrders === "function") {
+        const selectedVehicle = window.vehicleFilter?.value || "all";
+        const ordersToRender = selectedVehicle === "all"
+          ? window.allOrders
+          : window.allOrders.filter((order) => String(order.vehicleKey || "") === selectedVehicle);
+        window.renderOrders(ordersToRender);
+      }
+    } catch (error) {
+      console.error("rerenderOrdersWithCurrentFilter failed:", error);
+    }
+  }
+
+  function persistRecommendation(detail, sourceOrder = null) {
+    try {
+      const text = String(detail?.recommendationText || detail?.recommendation || "").trim();
+      if (!text || !Array.isArray(window.allOrders)) return;
+
+      const orderId = String(detail?.id || sourceOrder?.id || "").trim();
+      const orderNumber = String(detail?.number || sourceOrder?.number || "").trim();
+
+      window.allOrders = window.allOrders.map((order) => {
+        const sameId = orderId && String(order?.id || "") === orderId;
+        const sameNumber = orderNumber && String(order?.number || "") === orderNumber;
+        if (!sameId && !sameNumber) return order;
+
+        return {
+          ...order,
+          recommendationText: text,
+          recommendation: text,
+        };
+      });
+
+      if (typeof window.saveCachedOrders === "function") {
+        window.saveCachedOrders(window.allOrders);
+      } else {
+        try {
+          localStorage.setItem("cabinet_orders_cache", JSON.stringify(window.allOrders));
+        } catch {}
+      }
+    } catch (error) {
+      console.error("persistRecommendation failed:", error);
+    }
+  }
+
+  if (typeof window.renderLastRecommendation === "function") {
+    const originalRenderLastRecommendation = window.renderLastRecommendation;
+    window.renderLastRecommendation = function(detail, sourceOrder = null) {
+      const result = originalRenderLastRecommendation(detail, sourceOrder);
+      persistRecommendation(detail, sourceOrder);
+      rerenderOrdersWithCurrentFilter();
+      return result;
+    };
+  }
+
+  if (typeof window.openOrderDetail === "function") {
+    const originalOpenOrderDetail = window.openOrderDetail;
+    window.openOrderDetail = async function(orderId, fromVehicle = false) {
+      const result = await originalOpenOrderDetail(orderId, fromVehicle);
+
+      try {
+        const order = Array.isArray(window.allOrders)
+          ? window.allOrders.find((item) => String(item?.id || "") === String(orderId))
+          : null;
+
+        if (order) {
+          const text = String(order?.recommendationText || order?.recommendation || "").trim();
+          if (text) {
+            persistRecommendation(order, order);
+            rerenderOrdersWithCurrentFilter();
+          }
+        }
+      } catch (error) {
+        console.error("openOrderDetail recommendation sync failed:", error);
+      }
+
+      return result;
+    };
+  }
+
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      rerenderOrdersWithCurrentFilter();
+    }, 700);
+  });
+})();

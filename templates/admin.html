@@ -33,6 +33,24 @@
       </section>
 
       <section class="card">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;">
+          <div>
+            <h2 style="margin-bottom:6px;">Акции на сайте</h2>
+            <div class="muted">Редактирование акций для блока на главной странице</div>
+          </div>
+          <div class="row" style="margin-top:0;">
+            <button id="loadPromotionsBtn" class="btn btn-secondary" type="button">Обновить</button>
+            <button id="addPromotionBtn" class="btn btn-primary" type="button">Добавить акцию</button>
+            <button id="savePromotionsBtn" class="btn btn-primary" type="button">Сохранить акции</button>
+          </div>
+        </div>
+
+        <div id="promotionsMessage" class="message"></div>
+        <div id="promotionsEditor" style="display:grid;gap:14px;margin-top:14px;"></div>
+      </section>
+
+
+      <section class="card">
         <h2>Результаты</h2>
         <div id="adminResults" class="muted">Здесь будут клиенты и заказ-наряды.</div>
       </section>
@@ -540,6 +558,139 @@
     document.getElementById("adminClientModalBackdrop").addEventListener("click", closeAdminClientModal);
     document.getElementById("closeAdminOrderBtn").addEventListener("click", closeAdminOrderModal);
     document.getElementById("adminOrderModalBackdrop").addEventListener("click", closeAdminOrderModal);
+
+    function escapeAttr(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function renderPromotionsEditor(items) {
+      const root = document.getElementById("promotionsEditor");
+      if (!root) return;
+
+      const promotions = Array.isArray(items) ? items : [];
+
+      if (!promotions.length) {
+        root.innerHTML = '<div class="muted">Пока нет акций. Нажмите “Добавить акцию”.</div>';
+        return;
+      }
+
+      root.innerHTML = promotions.map((item, index) => `
+        <div class="card" style="margin-bottom:0;padding:18px;border:1px solid #cfd8e5;">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+            <strong>Акция #${index + 1}</strong>
+            <button class="btn btn-secondary" type="button" onclick="removePromotionRow(${index})">Удалить</button>
+          </div>
+
+          <div style="display:grid;gap:10px;">
+            <input class="input promo-title-input" type="text" placeholder="Заголовок акции" value="${escapeAttr(item.title || "")}">
+            <textarea class="input promo-text-input" placeholder="Текст акции" style="height:120px;padding:12px 14px;resize:vertical;">${escapeHtml(item.text || "")}</textarea>
+
+            <label style="display:flex;align-items:center;gap:8px;font-weight:700;">
+              <input class="promo-active-input" type="checkbox" ${item.active !== false ? "checked" : ""}>
+              Активна
+            </label>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function collectPromotionsFromEditor() {
+      const root = document.getElementById("promotionsEditor");
+      if (!root) return [];
+
+      const cards = Array.from(root.querySelectorAll(".card"));
+      return cards.map((card, index) => {
+        const title = card.querySelector(".promo-title-input")?.value?.trim() || "";
+        const text = card.querySelector(".promo-text-input")?.value?.trim() || "";
+        const active = !!card.querySelector(".promo-active-input")?.checked;
+
+        return {
+          id: `promo-${index + 1}`,
+          title,
+          text,
+          active
+        };
+      }).filter(item => item.title);
+    }
+
+    async function loadPromotions() {
+      const msg = document.getElementById("promotionsMessage");
+      msg.textContent = "Загрузка акций...";
+
+      try {
+        const response = await fetch("/admin/promotions", {
+          credentials: "include"
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка загрузки акций");
+        }
+
+        renderPromotionsEditor(data.promotions || []);
+        msg.textContent = "Акции загружены";
+      } catch (error) {
+        msg.textContent = error.message || "Ошибка загрузки акций";
+      }
+    }
+
+    function addPromotionRow() {
+      const current = collectPromotionsFromEditor();
+      current.push({
+        id: `promo-${current.length + 1}`,
+        title: "",
+        text: "",
+        active: true
+      });
+      renderPromotionsEditor(current);
+    }
+
+    function removePromotionRow(index) {
+      const current = collectPromotionsFromEditor();
+      current.splice(index, 1);
+      renderPromotionsEditor(current);
+    }
+
+    async function savePromotions() {
+      const msg = document.getElementById("promotionsMessage");
+      msg.textContent = "Сохранение акций...";
+
+      try {
+        const response = await fetch("/admin/promotions", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            promotions: collectPromotionsFromEditor()
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка сохранения акций");
+        }
+
+        renderPromotionsEditor(data.promotions || []);
+        msg.textContent = "Акции сохранены";
+      } catch (error) {
+        msg.textContent = error.message || "Ошибка сохранения акций";
+      }
+    }
+
+    window.removePromotionRow = removePromotionRow;
+
+    document.getElementById("loadPromotionsBtn").addEventListener("click", loadPromotions);
+    document.getElementById("addPromotionBtn").addEventListener("click", addPromotionRow);
+    document.getElementById("savePromotionsBtn").addEventListener("click", savePromotions);
+
+    loadPromotions();
+
 
     document.getElementById("adminSearchBtn").addEventListener("click", runAdminSearch);
     document.getElementById("adminSearchInput").addEventListener("keydown", (e) => {

@@ -1,17 +1,21 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Личный кабинет StarterSar</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-
+  <title>Личный кабинет клиента Стартер Саратов</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20260326i">
 </head>
 <body>
-  <div class="page">
-    <header class="topbar">
-      <div class="brand">StarterSar</div>
+  <div class="page login-page">
+    <header class="topbar topbar-branding">
+      <div class="brand brand-full">
+        <img class="brand-logo" src="{{ url_for('static', filename='logo-startersaratov.png') }}" alt="Стартер Саратов" />
+        <div class="brand-copy">
+          <div class="brand-title">Личный кабинет клиента</div>
+          <div class="brand-subtitle">Стартер Саратов</div>
+        </div>
+      </div>
 
       <div class="topbar-actions">
         <button id="themeToggleBtn" class="btn btn-ghost" type="button">🌙 Тема</button>
@@ -19,51 +23,130 @@
       </div>
     </header>
 
-    <main class="container">
-      <section id="loginScreen" class="card auth-card hidden">
-        <h1>Личный кабинет</h1>
-        <p class="muted">Войдите по номеру телефона</p>
+    <main class="container login-layout">
+      <section class="login-hero">
+        <div class="login-hero-bg"></div>
 
-        <label class="label" for="phoneInput">Телефон</label>
-        <input id="phoneInput" class="input" type="tel" placeholder="79001234567" />
+        <div class="login-hero-grid">
+          <div class="login-hero-copy reveal-fade-up">
+            <div class="login-kicker">Ваш лучший сервис</div>
+            <h1 class="login-title">Личный кабинет клиента Стартер Саратов</h1>
+            <p class="login-description">
+              В личном кабинете вы можете посмотреть историю обслуживания ваших автомобилей,
+              следить за статусом выполнения работ, управлять бонусными баллами и
+              ознакамливаться с новостями и акциями нашего сервиса.
+            </p>
 
-        <button id="sendCodeBtn" class="btn btn-primary btn-block" type="button">Получить код</button>
-        <p id="loginMessage" class="message"></p>
-      </section>
+            <div class="login-benefits">
+              <div class="login-benefit-card">
+                <div class="login-benefit-title">История обслуживания</div>
+                <div class="login-benefit-text">Все заказ-наряды, выполненные работы, фото и суммы в одном месте.</div>
+              </div>
+              <div class="login-benefit-card">
+                <div class="login-benefit-title">Статусы работ</div>
+                <div class="login-benefit-text">Следите за этапами ремонта и готовностью автомобиля без звонков.</div>
+              </div>
+              <div class="login-benefit-card">
+                <div class="login-benefit-title">Бонусы и выгода</div>
+                <div class="login-benefit-text">Контролируйте бонусный баланс, начисления и персональные предложения.</div>
+              </div>
+            </div>
+          </div>
 
-      <section id="codeScreen" class="card auth-card hidden">
-        <h2>Подтверждение входа</h2>
-        <p class="muted">Введите код из SMS</p>
+          <div class="login-panel-wrap reveal-scale">
+            <section id="loginScreen" class="card auth-card login-panel hidden">
+              <div class="login-panel-head">
+                <div class="login-panel-badge">Вход по номеру телефона</div>
+                <h2>Вход в кабинет</h2>
+                <p class="muted">Введите номер телефона, привязанный к вашему профилю</p>
+              </div>
 
-        <label class="label" for="codeInput">Код</label>
-        <input id="codeInput" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234" />
+              <label class="label" for="phoneInput">Телефон</label>
+              <div class="phone-input-wrap">
+                <span class="phone-prefix">+7</span>
+                <input id="phoneInput" class="input phone-input" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="900 123-45-67" />
+              </div>
 
-        <div class="row">
-          <button id="verifyCodeBtn" class="btn btn-primary" type="button">Войти</button>
-          <button id="backToPhoneBtn" class="btn btn-secondary" type="button">Назад</button>
+              <button id="sendCodeBtn" class="btn btn-primary btn-block login-main-btn" type="button">Получить код</button>
+              <p id="loginMessage" class="message"></p>
+            </section>
+
+            <section id="codeScreen" class="card auth-card login-panel hidden">
+              <div class="login-panel-head">
+                <div class="login-panel-badge">Подтверждение входа</div>
+                <h2>Введите код</h2>
+                <p class="muted">Код из SMS или пароль администратора</p>
+              </div>
+
+              <label class="label" for="codeInput">Код</label>
+              <input id="codeInput" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="1234" />
+
+              <div class="row">
+                <button id="verifyCodeBtn" class="btn btn-primary" type="button">Войти</button>
+                <button id="backToPhoneBtn" class="btn btn-secondary" type="button">Назад</button>
+              </div>
+
+              <p id="codeMessage" class="message"></p>
+            </section>
+
+            <section id="profileSetupScreen" class="card auth-card login-panel hidden">
+              <div class="login-panel-head">
+                <div class="login-panel-badge">Первичная настройка</div>
+                <h2>Заполните профиль</h2>
+                <p class="muted">Это нужно один раз: имя и дата рождения для бонусов и удобства в кабинете.</p>
+              </div>
+
+              <label class="label" for="setupNameInput">Имя</label>
+              <input id="setupNameInput" class="input" type="text" placeholder="Ваше имя" />
+
+              <input id="setupBirthDateInput" type="hidden" value="" />
+
+              <div class="row">
+                <button id="saveProfileBtn" class="btn btn-primary" type="button">Сохранить профиль</button>
+              </div>
+
+              <p id="profileSetupMessage" class="message"></p>
+            </section>
+          </div>
         </div>
 
-        <p id="codeMessage" class="message"></p>
-      </section>
-
-      <section id="profileSetupScreen" class="card auth-card hidden">
-        <h2>Заполните профиль</h2>
-        <p class="muted">Это нужно один раз: имя и дата рождения для бонусов и удобства в кабинете.</p>
-
-        <label class="label" for="setupNameInput">Имя</label>
-        <input id="setupNameInput" class="input" type="text" placeholder="Ваше имя" />
-
-        <input id="setupBirthDateInput" type="hidden" value="" />
-
-        <div class="row">
-          <button id="saveProfileBtn" class="btn btn-primary" type="button">Сохранить профиль</button>
+        <div class="login-mobile-shortcuts mobile-only">
+          <button id="loginPromoToggleBtn" class="btn btn-secondary login-shortcut-btn" type="button">Акции</button>
         </div>
 
-        <p id="profileSetupMessage" class="message"></p>
-      </section>
+          <div class="login-bottom-grid promo-slider-wrap">
+            <section class="card promo-card promo-slider-card">
+              <div class="promo-slider-top">
+                <div class="promo-icon">🔥</div>
+                {% if promotions and promotions|length > 1 %}
+                <div class="promo-slider-controls">
+                  <button id="promoPrevBtn" class="btn btn-secondary promo-nav-btn" type="button">‹</button>
+                  <button id="promoNextBtn" class="btn btn-secondary promo-nav-btn" type="button">›</button>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="promo-slider-track">
+                {% if promotions and promotions|length > 0 %}
+                  {% for promo in promotions %}
+                  <article class="promo-slide{% if loop.first %} active{% endif %}">
+                    <h3>{{ promo.title }}</h3>
+                    <p class="muted">{{ promo.text }}</p>
+                  </article>
+                  {% endfor %}
+                {% else %}
+                  <article class="promo-slide active">
+                    <h3>Акции для вас</h3>
+                    <p class="muted">Здесь будут отображаться персональные акции, сезонные предложения и выгодные условия на обслуживание.</p>
+                  </article>
+                {% endif %}
+              </div>
+            </section>
+          </div>
+        </section>
+
 
       <section id="cabinetScreen" class="hidden">
-
         <div class="mobile-section-nav mobile-only">
           <button id="mobileTabProfile" class="btn btn-secondary mobile-tab-btn active" type="button">Профиль</button>
           <button id="mobileTabVehicles" class="btn btn-secondary mobile-tab-btn" type="button">Авто</button>
@@ -73,108 +156,144 @@
         <div class="dashboard">
           <aside class="sidebar-col">
             <div id="mobileProfileSection" class="mobile-section-block">
-            <div class="card profile-card">
-              <div class="profile-badge">Наш любимый клиент</div>
-              <div class="profile-since">с <span id="favoriteClientSince">—</span></div>
+              <div class="card profile-card">
+                <div class="profile-badge">Наш любимый клиент</div>
+                <div class="profile-since">с <span id="favoriteClientSince">—</span></div>
 
-              <div class="profile-mobile-top">
-                <div class="profile-mobile-main">
-                  <div class="profile-hero-name" id="profileName">—</div>
-                  <div class="profile-hero-phone" id="profilePhone">—</div>
+                <div class="profile-mobile-top">
+                  <div class="profile-mobile-main">
+                    <div class="profile-hero-name" id="profileName">—</div>
+                    <div class="profile-hero-phone" id="profilePhone">—</div>
+                  </div>
+                  <div class="profile-mobile-side mobile-only">
+                    <div class="profile-inline-bonus">
+                      <div class="profile-inline-bonus-label">Бонусы</div>
+                      <div class="profile-inline-bonus-value" id="mobileBonusBalance">0 ₽</div>
+                    </div>
+                  </div>
                 </div>
-                <div class="profile-mobile-side mobile-only">
-                  <div class="profile-inline-bonus">
-                    <div class="profile-inline-bonus-label">Бонусы</div>
-                    <div class="profile-inline-bonus-value" id="mobileBonusBalance">0 ₽</div>
+
+                <div class="quick-actions">
+                  <a id="profileContactLink" class="btn btn-primary hidden" href="#" target="_blank" rel="noopener noreferrer">Связаться</a>
+                  <a id="profileReviewLink" class="btn btn-secondary hidden" href="#" target="_blank" rel="noopener noreferrer">Оставить отзыв</a>
+                </div>
+
+                <div class="profile-mobile-more-wrap mobile-only">
+                  <button id="profileMoreBtn" class="btn btn-secondary profile-more-btn" type="button">Подробнее</button>
+                </div>
+
+                <div id="profileDetailsBlock" class="stats-grid hidden-mobile-details">
+                  <div class="mini-stat">
+                    <div class="mini-stat-label">Дата рождения</div>
+                    <div class="mini-stat-value" id="profileBirthDate">—</div>
+                  </div>
+                  <div class="mini-stat">
+                    <div class="mini-stat-label">Всего ремонтов</div>
+                    <div class="mini-stat-value" id="totalRepairsSum">0 ₽</div>
+                  </div>
+                  <div class="mini-stat">
+                    <div class="mini-stat-label">Количество заказов</div>
+                    <div class="mini-stat-value" id="ordersCount">0</div>
+                  </div>
+                  <div class="mini-stat">
+                    <div class="mini-stat-label">Первое обращение</div>
+                    <div class="mini-stat-value" id="firstVisitDate">—</div>
                   </div>
                 </div>
               </div>
 
-              <div class="quick-actions">
-                <a id="profileContactLink" class="btn btn-primary hidden" href="#" target="_blank" rel="noopener noreferrer">Связаться</a>
-                <a id="profileReviewLink" class="btn btn-secondary hidden" href="#" target="_blank" rel="noopener noreferrer">Оставить отзыв</a>
-              </div>
+              <div class="card bonus-card desktop-bonus-card">
+                <div class="bonus-head">
+                  <div>
+                    <h2>Бонусный баланс</h2>
+                    <div class="muted">Ваш текущий бонусный счёт</div>
+                  </div>
+                  <div class="bonus-tier" id="bonusTier">2%</div>
+                </div>
 
-              <div class="profile-mobile-more-wrap mobile-only">
-                <button id="profileMoreBtn" class="btn btn-secondary profile-more-btn" type="button">Подробнее</button>
-              </div>
+                <div class="bonus-value" id="bonusBalance">0 ₽</div>
 
-              <div id="profileDetailsBlock" class="stats-grid hidden-mobile-details">
-                <div class="mini-stat">
-                  <div class="mini-stat-label">Дата рождения</div>
-                  <div class="mini-stat-value" id="profileBirthDate">—</div>
-                </div>
-                <div class="mini-stat">
-                  <div class="mini-stat-label">Всего ремонтов</div>
-                  <div class="mini-stat-value" id="totalRepairsSum">0 ₽</div>
-                </div>
-                <div class="mini-stat">
-                  <div class="mini-stat-label">Количество заказов</div>
-                  <div class="mini-stat-value" id="ordersCount">0</div>
-                </div>
-                <div class="mini-stat">
-                  <div class="mini-stat-label">Первое обращение</div>
-                  <div class="mini-stat-value" id="firstVisitDate">—</div>
+                <div class="bonus-meta">
+                  <div class="profile-row"><span>Накопленная сумма:</span><strong id="bonusTotalSpent">0 ₽</strong></div>
+                  <div class="profile-row"><span>Следующий уровень:</span><strong id="bonusNextTier">—</strong></div>
+                  <div class="profile-row"><span>Осталось до него:</span><strong id="bonusToNextTier">—</strong></div>
                 </div>
               </div>
-            </div>
 
-            <div class="card bonus-card desktop-bonus-card">
-              <div class="bonus-head">
-                <div>
-                  <h2>Бонусный баланс</h2>
-                  <div class="muted">Ваш текущий бонусный счёт</div>
+              <details class="card cabinet-promotions-card cabinet-promotions-details">
+                <summary class="cabinet-promotions-summary">
+                  <div>
+                    <h2>Акции и предложения</h2>
+                    <div class="muted">Нажмите, чтобы посмотреть актуальные предложения</div>
+                  </div>
+                  <span class="cabinet-promotions-chevron">⌄</span>
+                </summary>
+
+                <div class="cabinet-promotions-list">
+                  {% if promotions and promotions|length > 0 %}
+                    {% for promo in promotions[:3] %}
+                    <article class="cabinet-promo-item">
+                      <div class="cabinet-promo-title">{{ promo.title }}</div>
+                      <div class="cabinet-promo-text muted">{{ promo.text }}</div>
+                    </article>
+                    {% endfor %}
+                  {% else %}
+                    <article class="cabinet-promo-item">
+                      <div class="cabinet-promo-title">Акции и предложения</div>
+                      <div class="cabinet-promo-text muted">Здесь будут отображаться актуальные акции, сезонные предложения и выгодные условия на обслуживание.</div>
+                    </article>
+                  {% endif %}
                 </div>
-                <div class="bonus-tier" id="bonusTier">2%</div>
+              </details>
+
+              <div id="lastRecommendationCard" class="card recommendation-card hidden">
+                <div class="section-head section-head-tight">
+                  <div>
+                    <h2>Рекомендовано после последнего визита</h2>
+                    <div id="lastRecommendationMeta" class="muted">Что советуем сделать дальше</div>
+                  </div>
+                </div>
+                <div id="lastRecommendationText" class="recommendation-text"></div>
               </div>
 
-              <div class="bonus-value" id="bonusBalance">0 ₽</div>
-
-              <div class="bonus-meta">
-                <div class="profile-row"><span>Накопленная сумма:</span><strong id="bonusTotalSpent">0 ₽</strong></div>
-                <div class="profile-row"><span>Следующий уровень:</span><strong id="bonusNextTier">—</strong></div>
-                <div class="profile-row"><span>Осталось до него:</span><strong id="bonusToNextTier">—</strong></div>
+              <div class="card">
+                <div class="section-head section-head-tight">
+                  <h2>История бонусов</h2>
+                </div>
+                <div id="bonusHistoryList" class="bonus-history-list"></div>
               </div>
-            </div>
-
-            <div class="card">
-              <div class="section-head section-head-tight">
-                <h2>История бонусов</h2>
-              </div>
-              <div id="bonusHistoryList" class="bonus-history-list"></div>
-            </div>
             </div>
 
             <div id="mobileVehiclesSection" class="mobile-section-block">
-            <div class="card">
-              <div class="section-head section-head-tight">
-                <h2>Автомобили клиента</h2>
+              <div class="card">
+                <div class="section-head section-head-tight">
+                  <h2>Автомобили клиента</h2>
+                </div>
+                <div id="vehiclesList" class="vehicles-list"></div>
               </div>
-              <div id="vehiclesList" class="vehicles-list"></div>
-            </div>
             </div>
           </aside>
 
           <section class="content-col">
             <div id="mobileOrdersSection" class="mobile-section-block">
-            <div class="card orders-card">
-              <div class="section-head orders-head">
-                <div>
-                  <h2>Мои заказ-наряды</h2>
-                  <div class="muted">История обращений, статусы и фото</div>
+              <div class="card orders-card">
+                <div class="section-head orders-head">
+                  <div>
+                    <h2>Мои заказ-наряды</h2>
+                    <div class="muted">История обращений, статусы и фото</div>
+                  </div>
+
+                  <div class="toolbar">
+                    <select id="vehicleFilter" class="input select-input">
+                      <option value="all">Все автомобили</option>
+                    </select>
+                    <button id="refreshOrdersBtn" class="btn btn-secondary" type="button">Обновить</button>
+                  </div>
                 </div>
 
-                <div class="toolbar">
-                  <select id="vehicleFilter" class="input select-input">
-                    <option value="all">Все автомобили</option>
-                  </select>
-                  <button id="refreshOrdersBtn" class="btn btn-secondary" type="button">Обновить</button>
-                </div>
+                <div id="ordersMessage" class="message"></div>
+                <div id="ordersList" class="orders-list"></div>
               </div>
-
-              <div id="ordersMessage" class="message"></div>
-              <div id="ordersList" class="orders-list"></div>
-            </div>
             </div>
           </section>
         </div>
@@ -213,6 +332,6 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  <script src="{{ url_for('static', filename='app.js') }}?v=20260326i"></script>
 </body>
 </html>

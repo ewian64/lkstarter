@@ -451,11 +451,27 @@ def get_custom_field_value(order, field_id):
 def enrich_orders_with_vin(orders):
     enriched = []
     for order in orders or []:
+        order = dict(order)
         vin = extract_vin(order) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
+        recommendation_text = cleanup_spaces(order.get("recommendation", "")) or cleanup_spaces(order.get("recommendationText", ""))
+
+        if (not vin or not recommendation_text) and order.get("id"):
+            try:
+                detail = fetch_order_detail(order.get("id"))
+                if not vin:
+                    vin = extract_vin(detail) or get_custom_field_value(detail, VIN_CUSTOM_FIELD_ID)
+                if not recommendation_text:
+                    recommendation_text = cleanup_spaces(detail.get("recommendation", ""))
+            except Exception:
+                pass
+
         if vin:
-            order = dict(order)
             order["vin"] = vin
             order["vehicleVin"] = order.get("vehicleVin") or vin
+
+        if recommendation_text:
+            order["recommendationText"] = recommendation_text
+
         enriched.append(order)
     return enriched
 
@@ -580,6 +596,7 @@ def format_order(order):
     problem_text = build_problem_text(order.get("problem", []))
     summary = problem_text or f"{device_label}. Статус: {status_info['short'].lower()}."
     image_urls = extract_image_urls(order)
+    recommendation_text = cleanup_spaces(order.get("recommendation", ""))
 
     return {
         "id": order.get("id"),
@@ -606,6 +623,7 @@ def format_order(order):
         "positions": positions,
         "paymentLabel": format_money_short(total),
         "summary": summary,
+        "recommendationText": recommendation_text,
         "vin": vin,
         "hasPhotos": bool(image_urls),
         "photos": image_urls,
@@ -650,6 +668,7 @@ def format_order_detail(order):
     vin = extract_vin(order) or get_custom_field_value(order, VIN_CUSTOM_FIELD_ID)
     problem_text = build_problem_text(order.get("problem", []))
     image_urls = extract_image_urls(order)
+    recommendation_text = cleanup_spaces(order.get("recommendation", ""))
 
     return {
         "id": order.get("id"),
@@ -668,6 +687,7 @@ def format_order_detail(order):
         "vin": vin,
         "problemText": problem_text,
         "comment": cleanup_spaces(order.get("comment", "")),
+        "recommendationText": recommendation_text,
         "status": status.get("name"),
         "shortStatus": status_info["short"],
         "statusTone": status_info["tone"],
